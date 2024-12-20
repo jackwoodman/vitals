@@ -1,0 +1,9 @@
+versions. ! indicates breaking.
+
+1 - Initial version of the health file.
+2 - Misc improvements.
+3 - *
+4 - First usable version.
+5 - Supports bool and metric, added metric_guide() class functions. Unused.
+6 ! Changed metric_guide attribute to represent actual datatype, not string.
+7 ! Removed "metric" from "metric_date" and "metric_time".

@@ -1,0 +1,4 @@
+[ ] - Imply new metric type from initial metric entry.
+[ ] - Update metric guide tool.
+[ ] - Sort/cleanup metric file tool.
+[ ] - Read metric files to objects.
