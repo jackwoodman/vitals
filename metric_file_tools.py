@@ -47,14 +47,19 @@ def load_metric_from_json(health_data: dict) -> HealthMetric:
     data_values = health_data["data"]
 
     if metric_type == MetricType.Ranged:
-        lower_value, upper_value = metric_guide[1:-2].split(" ")
+        lower_value, upper_value = metric_guide
         metric = RangedMetric(
-            metric_name=metric_name, range_minimum=float(lower_value[:-1]), range_maximum=float(upper_value)
+            metric_name=metric_name, range_minimum=lower_value, range_maximum=upper_value
         )
     elif metric_type == MetricType.GreaterThan:
         metric = GreaterThanMetric(metric_name=metric_name, minimum_value=float(metric_guide))
     elif metric_type == MetricType.LessThan:
         metric = LessThanMetric(metric_name=metric_name, maximum_value=float(metric_guide))
+    elif metric_type == MetricType.Boolean:
+        metric = BooleanMetric(metric_name=metric_name, ideal_boolean_value=metric_guide)
+    elif metric_type == MetricType.Metric:
+        metric = HealthMetric(metric_name=metric_name)
+
 
     for data_point in data_values:
         date = data_point["date"]
@@ -138,8 +143,8 @@ def add_measurement_to_metric_file(metric_name: str, measurement: Measurement):
 def rename_health_file(current_metric_name: str, new_metric_name: str):
 
     # Specify the old and new file names
-    old_file = Path(f"health_files/{current_metric_name}.json")
-    new_file = Path(f"health_files/{new_metric_name}.json")
+    old_file = Path(f"{FILE_DIR_NAME}/{current_metric_name}.json")
+    new_file = Path(f"{FILE_DIR_NAME}/{new_metric_name}.json")
 
     # Rename the file
     try:
@@ -178,6 +183,17 @@ def rename_health_file(current_metric_name: str, new_metric_name: str):
         print(f"An error occurred: {e}")
 
 def parse_health_metric(metric_name: str) -> HealthMetric:
+    """
+    Given the name of a new metric file, prompt the user to select the type of metric,
+    and generate the required HealthMetric object to store this data.
+
+    Arguments:
+        str: The name of the new metric.
+
+    Returns:
+        A HealthMetric meeting the user requirements.
+    
+    """
     tab = "    "
     
     metric: HealthMetric = None
@@ -188,41 +204,51 @@ def parse_health_metric(metric_name: str) -> HealthMetric:
         "b": "boolean",
         "m": "metric"
     }
-    print("\n -> Parsing new health metric:")
-    print("supported types: ")
+
+    type_descriptions = {
+        "ranged": "Measurements should fall between two values (e.g. x < m < y)",
+        "greater_than" : "Measurements should be greater than some value (e.g. m > x)",
+        "less_than" : "Measurements should be less than some value (e.g. m < x)",
+        "boolean" : "Measurements should be of a certain truth value (e.g. m is True)",
+        "metric": "Measurements have no ideal value (e.g. age)"
+    }
+    print("\nParsing new health metric:")
+    print(f"Vitals currently supports {len(supported_types.items())} types of metric. These are:")
+
     for key, name in supported_types.items():
-        print(f" - ({key}){name[1:]}")
+        print(f" ({key}){name[1:]}: {type_descriptions[name]}")
    
-    response = input(tab).lower()
+    print(f"\nInput the first letter of the type of metric you'd like to create:")
+    response = input(" -> ").lower()
 
     parsed_metric_type = MetricType(supported_types.get(response, "metric"))
 
     if parsed_metric_type == MetricType.Ranged:
-        print(f"\n{tab} -> Parsing new ranged metric {metric_name}, format is (lower_bound upper_bound):")
+        print(f"\nParsing new ranged metric {metric_name}, format is (lower_bound upper_bound):")
         lower, upper = input(2 * tab).split(" ")
 
         metric = RangedMetric(metric_name=metric_name, range_minimum=float(lower), range_maximum=float(upper))
 
     elif parsed_metric_type == MetricType.GreaterThan:
-        print(f"\n{tab} -> Parsing new GreaterThan metric '{metric_name}', format is (upper_bound):")
+        print(f"\nParsing new GreaterThan metric '{metric_name}', format is (upper_bound):")
         lower = float(input(2 * tab))
         metric = GreaterThanMetric(metric_name=metric_name, minimum_value=lower)
 
     elif parsed_metric_type == MetricType.LessThan:
-        print(f"\n{tab} -> Parsing new LessThan metric '{metric_name}' (lower_bound):")
+        print(f"\nParsing new LessThan metric '{metric_name}' (lower_bound):")
         upper = float(input("    "))
         metric = LessThanMetric(metric_name=metric_name, maximum_value=upper)
 
     elif parsed_metric_type == MetricType.Boolean:
-        print(f"\n{tab} -> Parsing new Boolean metric '{metric_name}' (boolean):")
+        print(f"\nParsing new Boolean metric '{metric_name}' (boolean):")
         boolean = str(input("    ")).lower() == "true"
         metric = BooleanMetric(metric_name=metric_name, ideal_boolean_value=boolean)
 
     elif parsed_metric_type == MetricType.Metric:
-        print(f"\n{tab} -> Parsing new generic metric '{metric_name}' (metric):")
+        print(f"\nParsing new generic metric '{metric_name}' (metric):")
         metric = HealthMetric(metric_name=metric_name)
-    print(get_filenames_without_extension(FILE_DIR_NAME))
+
     print(
-        f"\n === New metric file '{metric_name}' generated (reporting {len(get_filenames_without_extension(FILE_DIR_NAME))} metric files) === \n"
+        f"\n === New metric file '{metric_name}' generated (reporting {len(get_filenames_without_extension(FILE_DIR_NAME)) + 1} metric files) === \n"
     )
     return metric

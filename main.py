@@ -53,16 +53,9 @@ def read():
     health_file = read_metric_file_to_json(target_metric)
     health_metric = load_metric_from_json(health_file)
 
-    plot = input("plot? ")
-
-    if plot == "yes":
-        from plotting import initialize_plot, add_lines
-
-        figure = initialize_plot()
-        figure = add_lines(figure, [health_metric])
-        figure.show()
-
-    print(health_metric)
+    print(f"Ingested '{health_metric.metric_name}':")
+    for measurement in health_metric.entries:
+        print("    ",measurement.value, measurement.date)
     
 
 def rename():

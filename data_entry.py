@@ -61,7 +61,16 @@ class InputHandlerFunction():
         if value_str == "*":
             value: AllowedMetricTypes = self.last_value_used
         else:
-            value: AllowedMetricTypes = float(value_str) if not value_str.lower() in ["true", "false"] else value_str.lower() == "true"
+            # If value is boolean, try to parse.
+            if value_str.lower() in ["true", "false"]:
+                value = value_str.lower() == "true"
+            else:
+                # Not bool, may be floating point.
+                try:
+                    value = float(value_str)
+                except ValueError:
+                    # Not float, must be string.
+                    value = value_str
         date = self.last_date_recorded if date_str == "*" else datetime.strptime(date_str, data_entry_strptime_format)
         metric_name = self.last_metric_used if metric_name_str == "*" else metric_name_str.lower()
 
@@ -100,3 +109,4 @@ class AssistedEntryHandler(InputHandlerFunction):
 class SpeedyEntryHandler(InputHandlerFunction):
     def handle_input(self, input_string: str) -> Entry_T:
         pass
+    
