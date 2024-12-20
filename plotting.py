@@ -4,7 +4,12 @@ from plotly.subplots import make_subplots
 
 def initialize_plot():
     """Initializes an empty plotly figure with a base layout."""
-    fig = go.Figure(layout={"xaxis": {"title": "X-axis"}, "yaxis": {"title": "Y-axis1", "side": "left"}})
+    fig = go.Figure(
+        layout={
+            "xaxis": {"title": "X-axis"},
+            "yaxis": {"title": "Y-axis1", "side": "left"},
+        }
+    )
     return fig
 
 

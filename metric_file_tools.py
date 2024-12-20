@@ -1,6 +1,15 @@
 import json
 from pathlib import Path
-from classes import GreaterThanMetric, HealthMetric, LessThanMetric, Measurement, MetricType, RangedMetric, BooleanMetric, HealthMetric
+from classes import (
+    GreaterThanMetric,
+    HealthMetric,
+    LessThanMetric,
+    Measurement,
+    MetricType,
+    RangedMetric,
+    BooleanMetric,
+    HealthMetric,
+)
 
 FILE_VERS = 7
 FILE_DIR_NAME = "metric_files"
@@ -16,7 +25,7 @@ def create_metric_dir():
     """
     if FILE_DIR_PATH.exists():
         return False
-    
+
     FILE_DIR_PATH.mkdir(parents=True, exist_ok=True)
     return True
 
@@ -25,7 +34,11 @@ def read_metric_file_to_json(metric_name: str):
     """
     Return metric JSON data
     """
-    filename = f"{FILE_DIR_NAME}/{metric_name}.json" if ".json" not in metric_name else metric_name
+    filename = (
+        f"{FILE_DIR_NAME}/{metric_name}.json"
+        if ".json" not in metric_name
+        else metric_name
+    )
 
     # Write updated data back to the file
     with open(filename, "r") as health_file:
@@ -49,17 +62,24 @@ def load_metric_from_json(health_data: dict) -> HealthMetric:
     if metric_type == MetricType.Ranged:
         lower_value, upper_value = metric_guide
         metric = RangedMetric(
-            metric_name=metric_name, range_minimum=lower_value, range_maximum=upper_value
+            metric_name=metric_name,
+            range_minimum=lower_value,
+            range_maximum=upper_value,
         )
     elif metric_type == MetricType.GreaterThan:
-        metric = GreaterThanMetric(metric_name=metric_name, minimum_value=float(metric_guide))
+        metric = GreaterThanMetric(
+            metric_name=metric_name, minimum_value=float(metric_guide)
+        )
     elif metric_type == MetricType.LessThan:
-        metric = LessThanMetric(metric_name=metric_name, maximum_value=float(metric_guide))
+        metric = LessThanMetric(
+            metric_name=metric_name, maximum_value=float(metric_guide)
+        )
     elif metric_type == MetricType.Boolean:
-        metric = BooleanMetric(metric_name=metric_name, ideal_boolean_value=metric_guide)
+        metric = BooleanMetric(
+            metric_name=metric_name, ideal_boolean_value=metric_guide
+        )
     elif metric_type == MetricType.Metric:
         metric = HealthMetric(metric_name=metric_name)
-
 
     for data_point in data_values:
         date = data_point["date"]
@@ -107,7 +127,6 @@ def generate_health_file(health_metric: HealthMetric) -> str:
     return file_path
 
 
-
 def get_filenames_without_extension(directory):
     """Returns a list of filenames in the given directory without their extensions."""
     directory_path = Path(directory)
@@ -139,9 +158,7 @@ def add_measurement_to_metric_file(metric_name: str, measurement: Measurement):
         json.dump(data, f, indent=4)
 
 
-
 def rename_health_file(current_metric_name: str, new_metric_name: str):
-
     # Specify the old and new file names
     old_file = Path(f"{FILE_DIR_NAME}/{current_metric_name}.json")
     new_file = Path(f"{FILE_DIR_NAME}/{new_metric_name}.json")
@@ -157,17 +174,18 @@ def rename_health_file(current_metric_name: str, new_metric_name: str):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-
     # Rename attribute.
     try:
         with open(str(new_file), "r") as file:
             data = json.load(file)
         key_to_modify = "metric_name"
-        
+
         if key_to_modify in data:
             old_value = data[key_to_modify]
             data[key_to_modify] = new_metric_name
-            print(f" - Changed value of '{key_to_modify}' from '{old_value}' to '{new_metric_name}'")
+            print(
+                f" - Changed value of '{key_to_modify}' from '{old_value}' to '{new_metric_name}'"
+            )
         else:
             print(f" - The key '{key_to_modify}' does not exist in the JSON file.")
 
@@ -182,6 +200,7 @@ def rename_health_file(current_metric_name: str, new_metric_name: str):
     except Exception as e:
         print(f"An error occurred: {e}")
 
+
 def parse_health_metric(metric_name: str) -> HealthMetric:
     """
     Given the name of a new metric file, prompt the user to select the type of metric,
@@ -192,45 +211,55 @@ def parse_health_metric(metric_name: str) -> HealthMetric:
 
     Returns:
         A HealthMetric meeting the user requirements.
-    
+
     """
     tab = "    "
     prompt = " -> "
-    
+
     metric: HealthMetric = None
     supported_types = {
         "r": "ranged",
         "g": "greater_than",
         "l": "less_than",
         "b": "boolean",
-        "m": "metric"
+        "m": "metric",
     }
 
     type_descriptions = {
         "ranged": "Measurements should fall between two values (e.g. x < m < y)",
-        "greater_than" : "Measurements should be greater than some value (e.g. m > x)",
-        "less_than" : "Measurements should be less than some value (e.g. m < x)",
-        "boolean" : "Measurements should be of a certain truth value (e.g. m is True)",
-        "metric": "Measurements have no ideal value (e.g. age)"
+        "greater_than": "Measurements should be greater than some value (e.g. m > x)",
+        "less_than": "Measurements should be less than some value (e.g. m < x)",
+        "boolean": "Measurements should be of a certain truth value (e.g. m is True)",
+        "metric": "Measurements have no ideal value (e.g. age)",
     }
     print("\nParsing new health metric:")
-    print(f"Vitals currently supports {len(supported_types.items())} types of metric. These are:")
+    print(
+        f"Vitals currently supports {len(supported_types.items())} types of metric. These are:"
+    )
 
     for key, name in supported_types.items():
         print(f" ({key}){name[1:]}: {type_descriptions[name]}")
-   
+
     print(f"\nInput the first letter of the type of metric you'd like to create:")
     response = input(prompt).lower()
 
     parsed_metric_type = MetricType(supported_types.get(response, "metric"))
 
     if parsed_metric_type == MetricType.Ranged:
-        print(f"\nParsing new ranged metric {metric_name}, format is (lower_bound upper_bound):")
+        print(
+            f"\nParsing new ranged metric {metric_name}, format is (lower_bound upper_bound):"
+        )
         lower, upper = input(prompt).split(" ")
-        metric = RangedMetric(metric_name=metric_name, range_minimum=float(lower), range_maximum=float(upper))
+        metric = RangedMetric(
+            metric_name=metric_name,
+            range_minimum=float(lower),
+            range_maximum=float(upper),
+        )
 
     elif parsed_metric_type == MetricType.GreaterThan:
-        print(f"\nParsing new GreaterThan metric '{metric_name}', format is (upper_bound):")
+        print(
+            f"\nParsing new GreaterThan metric '{metric_name}', format is (upper_bound):"
+        )
         lower = float(input(prompt))
         metric = GreaterThanMetric(metric_name=metric_name, minimum_value=lower)
 

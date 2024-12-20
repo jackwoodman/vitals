@@ -5,6 +5,7 @@ from plotting import initialize_plot, add_lines
 
 AllowedMetricTypes = Union[bool, float]
 
+
 class MetricType(Enum):
     Ranged = "ranged"
     GreaterThan = "greater_than"
@@ -37,11 +38,13 @@ class HealthMetric:
 
     def __str__(self):
         return (
-            f"Metric: {self.metric_name.upper()} -> {len(self.entries)} entries. " f"({self.metric_type.value})"
+            f"Metric: {self.metric_name.upper()} -> {len(self.entries)} entries. "
+            f"({self.metric_type.value})"
         )
-    
+
     def metric_guide(self) -> str:
         return "Generic Metric"
+
 
 class RangedMetric(HealthMetric):
     def __init__(self, metric_name: str, range_minimum: float, range_maximum: float):
@@ -52,6 +55,7 @@ class RangedMetric(HealthMetric):
     def metric_guide(self) -> str:
         return (self.range_minimum, self.range_maximum)
 
+
 class GreaterThanMetric(HealthMetric):
     def __init__(self, metric_name: str, minimum_value: float):
         super().__init__(metric_name, MetricType.GreaterThan)
@@ -60,6 +64,7 @@ class GreaterThanMetric(HealthMetric):
     def metric_guide(self) -> str:
         return self.bound
 
+
 class LessThanMetric(HealthMetric):
     def __init__(self, metric_name: str, maximum_value: float):
         super().__init__(metric_name, MetricType.LessThan)
@@ -67,6 +72,7 @@ class LessThanMetric(HealthMetric):
 
     def metric_guide(self) -> str:
         return self.bound
+
 
 class BooleanMetric(HealthMetric):
     def __init__(self, metric_name: str, ideal_boolean_value: bool):

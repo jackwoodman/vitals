@@ -6,11 +6,19 @@ from metric_file_tools import (
     get_filenames_without_extension,
     generate_health_file,
     add_measurement_to_metric_file,
-    rename_health_file
+    rename_health_file,
 )
 from logger import LogCollector, LogEntry
 from datetime import datetime
-from classes import HealthMetric, MetricType, RangedMetric, GreaterThanMetric, LessThanMetric, Measurement
+from classes import (
+    HealthMetric,
+    MetricType,
+    RangedMetric,
+    GreaterThanMetric,
+    LessThanMetric,
+    Measurement,
+)
+
 logger = LogCollector()
 
 from metric_file_tools import parse_health_metric
@@ -36,12 +44,14 @@ def write():
         add_measurement_to_metric_file(metric_name=metric_name, measurement=new_entry)
         print(f"\n === New entry for '{metric_name}' added === \n")
 
-def new_write():
 
+def new_write():
     from data_entry import ManualEntryHandler, AssistedEntryHandler
     from metric_file_tools import get_filenames_without_extension
 
-    handler = AssistedEntryHandler(recognised_metrics=get_filenames_without_extension(FILE_DIR_NAME))
+    handler = AssistedEntryHandler(
+        recognised_metrics=get_filenames_without_extension(FILE_DIR_NAME)
+    )
 
     while True:
         new_input = input("New input: ")
@@ -55,25 +65,26 @@ def read():
 
     print(f"Ingested '{health_metric.metric_name}':")
     for measurement in health_metric.entries:
-        print("    ",measurement.value, measurement.date)
-    
+        print("    ", measurement.value, measurement.date)
+
 
 def rename():
     old_metric_name = input("-> rename which metric file? ")
     new_metric_name = input(f"-> rename '{old_metric_name}' to what? ")
 
     print(f"Renaming '{old_metric_name}' to '{new_metric_name}'...")
-    rename_health_file(current_metric_name=old_metric_name, new_metric_name=new_metric_name)
+    rename_health_file(
+        current_metric_name=old_metric_name, new_metric_name=new_metric_name
+    )
 
-    logger.add(LogEntry("ACTN", f"Renamed metric '{old_metric_name}' to '{new_metric_name}'"))
-
-
+    logger.add(
+        LogEntry("ACTN", f"Renamed metric '{old_metric_name}' to '{new_metric_name}'")
+    )
 
 
 if __name__ == "__main__":
     # If no directory exists, generate one.
     create_metric_dir()
-    
 
     while True:
         requirement = input("\n-> (read), (write), (rename), or (new_write)? ")
