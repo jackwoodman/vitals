@@ -139,22 +139,24 @@ class AssistedEntryHandler(InputHandlerFunction):
             similar_metrics = get_closest_matches(
                 metric_name, self.recognised_metrics, self.required_close_matches
             )
-
             print(
                 f"'{metric_name}' is not recognised, choose from one of the below close matches,\n"
                 " or (v) to create a new metric using the input name:"
             )
 
+            # Display closest matchets and ask user to choose one, or to use their input (v)erbatim.
             for i, similar in enumerate(similar_metrics):
                 print(f"({i+1}) {similar}")
             print(f"(v) {metric_name}")
             user_response = input(" -> ")
 
+            # Use chose (v)erbatim.
             if user_response == "v":
                 print(f"Creating new metric '{metric_name}' and adding measurement.")
                 generate_new_metric(metric_name, value, date)
                 add_to_metric(metric_name, value, date)
             else:
+                # User chose from existing names.
                 metric_name = similar_metrics[int(user_response) - 1]
                 print(f"Adding measurement to {metric_name}.")
                 add_to_metric(metric_name, value, date)
@@ -162,4 +164,22 @@ class AssistedEntryHandler(InputHandlerFunction):
 
 class SpeedyEntryHandler(InputHandlerFunction):
     def handle_input(self, input_string: str) -> Entry_T:
-        pass
+        parsing_result = self.parse_input_str(input_string)
+
+        # Unable to parse, can skip.
+        if not parsing_result:
+            return None
+
+        # Parse succesful, unpack.
+        metric_name, value, date = parsing_result
+
+        # Check if generating new metric, or adding to metric;
+        if metric_name in self.recognised_metrics:
+            add_to_metric(metric_name, value, date)
+        else:
+            # Not recognised, find close to.
+            similar_metrics = get_closest_matches(
+                metric_name, self.recognised_metrics, 1
+            )
+            metric_name = similar_metrics[0]
+            add_to_metric(metric_name, value, date)
