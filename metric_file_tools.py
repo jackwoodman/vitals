@@ -3,14 +3,29 @@ from pathlib import Path
 from classes import GreaterThanMetric, HealthMetric, LessThanMetric, Measurement, MetricType, RangedMetric, BooleanMetric, HealthMetric
 
 FILE_VERS = 7
-FILE_DIR = "metric_files"
+FILE_DIR_NAME = "metric_files"
+FILE_DIR_PATH = Path(FILE_DIR_NAME)
+
+
+def create_metric_dir():
+    """
+    Creates a dir at the required path, if not existing already.
+
+    Returns:
+        Bool indicating if a directory was created (True) or not (False).
+    """
+    if FILE_DIR_PATH.exists():
+        return False
+    
+    FILE_DIR_PATH.mkdir(parents=True, exist_ok=True)
+    return True
 
 
 def read_metric_file_to_json(metric_name: str):
     """
     Return metric JSON data
     """
-    filename = f"{FILE_DIR}/{metric_name}.json" if ".json" not in metric_name else metric_name
+    filename = f"{FILE_DIR_NAME}/{metric_name}.json" if ".json" not in metric_name else metric_name
 
     # Write updated data back to the file
     with open(filename, "r") as health_file:
@@ -59,7 +74,20 @@ def generate_health_metric_from_file(filepath: str) -> HealthMetric:
 
 
 def generate_health_file(health_metric: HealthMetric) -> str:
-    with open(f"{FILE_DIR}/{health_metric.metric_name}.json", "w") as health_file:
+    """
+    Provided a health metric object, generate a metric file to store the currently
+    contained data. File is named using the metric_name attribute and saved to the
+    required directory.
+
+    Arguments:
+        health_metric: The metric to be saved to file.
+
+    Returns:
+        A string path to the generated file.
+    """
+    file_path = f"{FILE_DIR_NAME}/{health_metric.metric_name}.json"
+
+    with open(file_path, "w") as health_file:
         json.dump(
             {
                 "metric_name": health_metric.metric_name,
@@ -70,6 +98,9 @@ def generate_health_file(health_metric: HealthMetric) -> str:
             },
             health_file,
         )
+
+    return file_path
+
 
 
 def get_filenames_without_extension(directory):
@@ -83,7 +114,7 @@ def get_filenames_without_extension(directory):
 def add_measurement_to_metric_file(metric_name: str, measurement: Measurement):
     """Adds a new entry (date and value) to an existing health JSON file, accepts a datetime object for the date."""
     # Load existing data
-    filename = f"{FILE_DIR}/{metric_name}.json"
+    filename = f"{FILE_DIR_NAME}/{metric_name}.json"
     try:
         with open(filename, "r") as f:
             data = json.load(f)
@@ -190,8 +221,8 @@ def parse_health_metric(metric_name: str) -> HealthMetric:
     elif parsed_metric_type == MetricType.Metric:
         print(f"\n{tab} -> Parsing new generic metric '{metric_name}' (metric):")
         metric = HealthMetric(metric_name=metric_name)
-    print(get_filenames_without_extension(FILE_DIR))
+    print(get_filenames_without_extension(FILE_DIR_NAME))
     print(
-        f"\n === New metric file '{metric_name}' generated (reporting {len(get_filenames_without_extension(FILE_DIR))} metric files) === \n"
+        f"\n === New metric file '{metric_name}' generated (reporting {len(get_filenames_without_extension(FILE_DIR_NAME))} metric files) === \n"
     )
     return metric

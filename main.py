@@ -1,5 +1,6 @@
 from metric_file_tools import (
-    FILE_DIR,
+    FILE_DIR_NAME,
+    create_metric_dir,
     load_metric_from_json,
     read_metric_file_to_json,
     get_filenames_without_extension,
@@ -37,10 +38,10 @@ def write():
 
 def new_write():
 
-    from entry import ManualEntryHandler
+    from data_entry import ManualEntryHandler
     from metric_file_tools import get_filenames_without_extension
 
-    handler = ManualEntryHandler(recognised_metrics=get_filenames_without_extension(FILE_DIR))
+    handler = ManualEntryHandler(recognised_metrics=get_filenames_without_extension(FILE_DIR_NAME))
 
     while True:
         new_input = input("New input: ")
@@ -77,6 +78,8 @@ def rename():
 
 
 if __name__ == "__main__":
+    # If no directory exists, generate one.
+    create_metric_dir()
     
 
     while True:
