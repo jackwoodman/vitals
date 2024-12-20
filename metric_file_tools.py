@@ -63,9 +63,9 @@ def load_metric_from_json(health_data: dict) -> HealthMetric:
 
     for data_point in data_values:
         date = data_point["date"]
-        data = float(data_point["value"])
+        value = float(data_point["value"])
 
-        metric.add_entry(Measurement(data, date))
+        metric.add_entry(Measurement(value, date))
 
     return metric
 
@@ -195,6 +195,7 @@ def parse_health_metric(metric_name: str) -> HealthMetric:
     
     """
     tab = "    "
+    prompt = " -> "
     
     metric: HealthMetric = None
     supported_types = {
@@ -219,29 +220,28 @@ def parse_health_metric(metric_name: str) -> HealthMetric:
         print(f" ({key}){name[1:]}: {type_descriptions[name]}")
    
     print(f"\nInput the first letter of the type of metric you'd like to create:")
-    response = input(" -> ").lower()
+    response = input(prompt).lower()
 
     parsed_metric_type = MetricType(supported_types.get(response, "metric"))
 
     if parsed_metric_type == MetricType.Ranged:
         print(f"\nParsing new ranged metric {metric_name}, format is (lower_bound upper_bound):")
-        lower, upper = input(2 * tab).split(" ")
-
+        lower, upper = input(prompt).split(" ")
         metric = RangedMetric(metric_name=metric_name, range_minimum=float(lower), range_maximum=float(upper))
 
     elif parsed_metric_type == MetricType.GreaterThan:
         print(f"\nParsing new GreaterThan metric '{metric_name}', format is (upper_bound):")
-        lower = float(input(2 * tab))
+        lower = float(input(prompt))
         metric = GreaterThanMetric(metric_name=metric_name, minimum_value=lower)
 
     elif parsed_metric_type == MetricType.LessThan:
         print(f"\nParsing new LessThan metric '{metric_name}' (lower_bound):")
-        upper = float(input("    "))
+        upper = float(input(prompt))
         metric = LessThanMetric(metric_name=metric_name, maximum_value=upper)
 
     elif parsed_metric_type == MetricType.Boolean:
         print(f"\nParsing new Boolean metric '{metric_name}' (boolean):")
-        boolean = str(input("    ")).lower() == "true"
+        boolean = str(input(prompt)).lower() == "true"
         metric = BooleanMetric(metric_name=metric_name, ideal_boolean_value=boolean)
 
     elif parsed_metric_type == MetricType.Metric:

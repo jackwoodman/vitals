@@ -38,10 +38,10 @@ def write():
 
 def new_write():
 
-    from data_entry import ManualEntryHandler
+    from data_entry import ManualEntryHandler, AssistedEntryHandler
     from metric_file_tools import get_filenames_without_extension
 
-    handler = ManualEntryHandler(recognised_metrics=get_filenames_without_extension(FILE_DIR_NAME))
+    handler = AssistedEntryHandler(recognised_metrics=get_filenames_without_extension(FILE_DIR_NAME))
 
     while True:
         new_input = input("New input: ")
