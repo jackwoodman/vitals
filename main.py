@@ -43,6 +43,8 @@ def new_write():
 
     while True:
         new_input = input("New input: ")
+        if new_input == "exit":
+            break
         handler.handle_input(new_input)
 
 
@@ -83,3 +85,7 @@ if __name__ == "__main__":
             rename()
         elif requirement == "new_write":
             new_write()
+        elif requirement == "exit":
+            logger.add("info", "Exiting.")
+            logger.dump_to_file()
+            break

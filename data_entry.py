@@ -162,7 +162,7 @@ class ManualEntryHandler(InputHandlerFunction):
         if metric_name in self.recognised_metrics:
             add_to_metric(metric_name, value, date)
         else:
-            generate_new_metric(metric_name, value, date)
+            generate_new_metric(metric_name)
             add_to_metric(metric_name, value, date)
 
 
@@ -202,7 +202,7 @@ class AssistedEntryHandler(InputHandlerFunction):
                 print(
                     f"Creating new metric '{verbatim_result}' and adding measurement."
                 )
-                generate_new_metric(verbatim_result, value, date)
+                generate_new_metric(verbatim_result)
                 add_to_metric(verbatim_result, value, date)
             else:
                 # Not recognised, find close to.
@@ -225,7 +225,7 @@ class AssistedEntryHandler(InputHandlerFunction):
                     print(
                         f"Creating new metric '{metric_name}' and adding measurement."
                     )
-                    generate_new_metric(metric_name, value, date)
+                    generate_new_metric(metric_name)
                     add_to_metric(metric_name, value, date)
                 else:
                     # User chose from existing names.
@@ -260,7 +260,7 @@ class SpeedyEntryHandler(InputHandlerFunction):
                 print(
                     f"Creating new metric '{verbatim_result}' and adding measurement."
                 )
-                generate_new_metric(verbatim_result, value, date)
+                generate_new_metric(verbatim_result)
                 add_to_metric(verbatim_result, value, date)
             else:
                 # Not recognised and not verbatim, use the closest match.

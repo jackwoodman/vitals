@@ -9,6 +9,7 @@ from classes import (
     RangedMetric,
     BooleanMetric,
 )
+from logger import logger
 
 FILE_VERS = 7
 FILE_DIR_NAME = "metric_files"
@@ -123,6 +124,7 @@ def generate_metric_file(health_metric: HealthMetric) -> str:
             health_file,
         )
 
+    logger.add("action", f"Created new metric file `{health_metric.metric_name}.json`.")
     return file_path
 
 
@@ -212,7 +214,7 @@ def parse_health_metric(metric_name: str) -> HealthMetric:
         A HealthMetric meeting the user requirements.
 
     """
-    tab = "    "
+
     prompt = " -> "
 
     metric: HealthMetric = None
@@ -239,7 +241,7 @@ def parse_health_metric(metric_name: str) -> HealthMetric:
     for key, name in supported_types.items():
         print(f" ({key}){name[1:]}: {type_descriptions[name]}")
 
-    print(f"\nInput the first letter of the type of metric you'd like to create:")
+    print("\nInput the first letter of the type of metric you'd like to create:")
     response = input(prompt).lower()
 
     parsed_metric_type = MetricType(supported_types.get(response, "metric"))
