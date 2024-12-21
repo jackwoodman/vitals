@@ -4,7 +4,7 @@ from datetime import datetime
 from sequence_matcher import get_closest_matches
 from metric_file_tools import (
     add_measurement_to_metric_file,
-    generate_health_file,
+    generate_metric_file,
     parse_health_metric,
 )
 from utils import is_verbatim
@@ -27,12 +27,14 @@ rules:
 """
 
 
-def generate_new_metric(metric_name: str, value: AllowedMetricTypes, date: datetime):
-    # Create new metric file.
-    new_health_metric = parse_health_metric(metric_name=metric_name)
-    generate_health_file(health_metric=new_health_metric)
+def generate_new_metric(metric_name: str):
+    """
+    Given a metric name, parse from the user the required information to generate
+    a new metric. Use this to generate a new metric file.
 
-    pass
+    """
+    new_health_metric = parse_health_metric(metric_name=metric_name)
+    generate_metric_file(health_metric=new_health_metric)
 
 
 def add_to_metric(metric_name: str, value: AllowedMetricTypes, date: datetime):

@@ -2,26 +2,19 @@ from metric_file_tools import (
     FILE_DIR_NAME,
     create_metric_dir,
     load_metric_from_json,
+    parse_health_metric,
     read_metric_file_to_json,
     get_filenames_without_extension,
-    generate_health_file,
+    generate_metric_file,
     add_measurement_to_metric_file,
     rename_health_file,
 )
+from data_entry import AssistedEntryHandler
 from logger import LogCollector, LogEntry
 from datetime import datetime
-from classes import (
-    HealthMetric,
-    MetricType,
-    RangedMetric,
-    GreaterThanMetric,
-    LessThanMetric,
-    Measurement,
-)
+from classes import Measurement
 
 logger = LogCollector()
-
-from metric_file_tools import parse_health_metric
 
 
 def parse_metric_entry() -> Measurement:
@@ -37,7 +30,7 @@ def write():
     direction = input("-> write new (metric) or new (entry)?\n")
     if direction == "metric":
         new_metric = parse_health_metric()
-        generate_health_file(health_metric=new_metric)
+        generate_metric_file(health_metric=new_metric)
     else:
         metric_name, new_entry = parse_metric_entry()
 
@@ -46,9 +39,6 @@ def write():
 
 
 def new_write():
-    from data_entry import ManualEntryHandler, AssistedEntryHandler
-    from metric_file_tools import get_filenames_without_extension
-
     handler = AssistedEntryHandler(
         recognised_metrics=get_filenames_without_extension(FILE_DIR_NAME)
     )

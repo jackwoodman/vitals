@@ -8,7 +8,6 @@ from classes import (
     MetricType,
     RangedMetric,
     BooleanMetric,
-    HealthMetric,
 )
 
 FILE_VERS = 7
@@ -98,7 +97,7 @@ def generate_health_metric_from_file(filepath: str) -> HealthMetric:
     return metric
 
 
-def generate_health_file(health_metric: HealthMetric) -> str:
+def generate_metric_file(health_metric: HealthMetric) -> str:
     """
     Provided a health metric object, generate a metric file to store the currently
     contained data. File is named using the metric_name attribute and saved to the
