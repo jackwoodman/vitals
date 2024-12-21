@@ -46,7 +46,7 @@ def add_to_metric(metric_name: str, value: AllowedMetricTypes, date: datetime):
     pass
 
 
-class InputHandlerFunction:
+class InputHandler:
     """
     Class to represent an input handler. An input handler receives input from the user,
     specifically for a new data entry, and decides how to ingest, process and log the input.
@@ -131,8 +131,15 @@ class InputHandlerFunction:
 
         return (metric_name, value, date)
 
+    def handle_input():
+        """*MUST BE IMPLEMENTED*"""
+        logger.add(
+            "warning", "`handle_input()` called from InputHandler(), not a subclass."
+        )
+        pass
 
-class ManualEntryHandler(InputHandlerFunction):
+
+class ManualEntryHandler(InputHandler):
     """
     The ManualEntryHandler is used for mode 1 data entry. This assumes the user
     input is correct and intentional. If a recognised metric name is entered,
@@ -166,7 +173,7 @@ class ManualEntryHandler(InputHandlerFunction):
             add_to_metric(metric_name, value, date)
 
 
-class AssistedEntryHandler(InputHandlerFunction):
+class AssistedEntryHandler(InputHandler):
     """
     The AssistedEntryHandler is used for mode 2 data entry. This assumes the user
     input is incorrect if not recognised, and needs to be matched to the closest
@@ -234,7 +241,7 @@ class AssistedEntryHandler(InputHandlerFunction):
                     add_to_metric(metric_name, value, date)
 
 
-class SpeedyEntryHandler(InputHandlerFunction):
+class SpeedyEntryHandler(InputHandler):
     """
     The SpeedyEntryHandler is used for mode 3 data entry. This assumes the user
     input is incorrect if not recognised, and needs to be matched to the closest

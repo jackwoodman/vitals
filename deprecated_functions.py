@@ -12,7 +12,7 @@ def parse_metric_entry() -> Measurement:
     )
 
 
-def write():
+def old_write():
     direction = input("-> write new (metric) or new (entry)?\n")
     if direction == "metric":
         new_metric = parse_health_metric()
