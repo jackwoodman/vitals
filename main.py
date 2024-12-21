@@ -64,7 +64,7 @@ def write():
 
     # Run writing loop using this handler.
     logger.add("info", "Entering input loop.")
-    print("Starting input loop, format is 'metric measurement DDMMYYYY")
+    print("\nStarting input loop, format is 'metric measurement DDMMYYYY'")
     print("    (type 'exit' to quit)\n")
     while True:
         new_input = input(f"({handler_description}): ")
@@ -97,19 +97,23 @@ def manage():
         "rename": rename,
     }
 
+    print("Entering management terminal.")
+    logger.add("info", "Entered management terminal.")
+
     while True:
         # Parse new user input.
-        requested_function = input(" -> ").lower()
+        requested_function = input("(manage) -> ").lower()
+
+        # Catch exit call, assuming exit() handled everything.
+        if requested_function == "exit":
+            logger.add("info", "Exiting management terminal.")
+            break
 
         # Attempt to run requested function.
         if requested_function in function_mapping.keys():
             function_mapping[requested_function]()
         else:
             logger.add("warning", f"'{requested_function}' is not recognised.")
-
-        # Catch exit call, assuming exit() handled everything.
-        if requested_function == "exit":
-            break
 
 
 def exit():

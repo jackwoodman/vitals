@@ -248,7 +248,7 @@ def parse_health_metric(metric_name: str) -> HealthMetric:
 
     if parsed_metric_type == MetricType.Ranged:
         print(
-            f"\nParsing new ranged metric {metric_name}, format is (lower_bound upper_bound):"
+            f"\nInput ideal range for new ranged metric {metric_name}, format is 'lower_bound upper_bound':"
         )
         lower, upper = input(prompt).split(" ")
         metric = RangedMetric(
@@ -259,23 +259,27 @@ def parse_health_metric(metric_name: str) -> HealthMetric:
 
     elif parsed_metric_type == MetricType.GreaterThan:
         print(
-            f"\nParsing new GreaterThan metric '{metric_name}', format is (upper_bound):"
+            f"\nInput ideal min value for new GreaterThan metric '{metric_name}', format is 'lower_bound':"
         )
         lower = float(input(prompt))
         metric = GreaterThanMetric(metric_name=metric_name, minimum_value=lower)
 
     elif parsed_metric_type == MetricType.LessThan:
-        print(f"\nParsing new LessThan metric '{metric_name}' (lower_bound):")
+        print(
+            f"\nInput ideal max value for new LessThan metric '{metric_name}', format is  'upper_bound':"
+        )
         upper = float(input(prompt))
         metric = LessThanMetric(metric_name=metric_name, maximum_value=upper)
 
     elif parsed_metric_type == MetricType.Boolean:
-        print(f"\nParsing new Boolean metric '{metric_name}' (boolean):")
+        print(
+            f"\Input ideal value for new Boolean metric '{metric_name}',  format is  'boolean':"
+        )
         boolean = str(input(prompt)).lower() == "true"
         metric = BooleanMetric(metric_name=metric_name, ideal_boolean_value=boolean)
 
     elif parsed_metric_type == MetricType.Metric:
-        print(f"\nParsing new generic metric '{metric_name}' (metric):")
+        print(f"\Creating new generic metric '{metric_name}' (metric):")
         metric = HealthMetric(metric_name=metric_name)
 
     print(
