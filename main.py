@@ -10,11 +10,9 @@ from metric_file_tools import (
     rename_health_file,
 )
 from data_entry import AssistedEntryHandler
-from logger import LogCollector, LogEntry
+from logger import logger
 from datetime import datetime
 from classes import Measurement
-
-logger = LogCollector()
 
 
 def parse_metric_entry() -> Measurement:
@@ -67,9 +65,7 @@ def rename():
         current_metric_name=old_metric_name, new_metric_name=new_metric_name
     )
 
-    logger.add(
-        LogEntry("ACTN", f"Renamed metric '{old_metric_name}' to '{new_metric_name}'")
-    )
+    logger.add("action", f"Renamed metric '{old_metric_name}' to '{new_metric_name}'")
 
 
 if __name__ == "__main__":

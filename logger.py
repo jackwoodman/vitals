@@ -4,10 +4,11 @@ from datetime import datetime
 
 class LogType(Enum):
     Info = "INFO"
-    Status = "STAT"
-    Action = "ACTN"
-    Warning = "WARN"
-    Error = "ERRO"
+    Status = "STATUS"
+    Action = "ACTION"
+    Warning = "WARNING"
+    Error = "ERROR"
+    Unknown = "UNKNOWN"
 
 
 class LogEntry:
@@ -32,6 +33,7 @@ class LogCollector:
     """
 
     collection: list[LogEntry] = []
+    accepted_log_types: list[str] = [log.value for log in LogType]
 
     def __init__(self, display_logs: bool = False):
         self.init_time = datetime.now()
@@ -41,19 +43,40 @@ class LogCollector:
         )
         self.should_display_logs = display_logs
 
-    def add(self, new_log: LogEntry):
+    def add(self, log_level: str, log: str):
+        """
+        Add new log entry from text.
+        """
+
+        if log_level.upper() in self.accepted_log_types:
+            log_event = LogEntry(log_type_str=log_level.upper(), log_string=log)
+        else:
+            log_event = LogEntry(log_type_str="unknown", log_string=log)
+        self.collection.append(log_event)
+
+        if self.should_display_logs:
+            print(log_event.to_string())
+
+    def add_entry(self, new_log: LogEntry):
+        """
+        Add new log entry from LogEntry object..
+        """
         self.collection.append(new_log)
 
         if self.should_display_logs:
             print(new_log.to_string())
 
-        if self.count() >= 5:
-            self.dump_to_file()
-
     def count(self) -> int:
         return len(self.collection)
 
-    def dump_to_file(self):
+    def dump_to_file(self) -> str:
+        """
+        Assuming end of logging operations, create a new file and write
+        the collected logs to the file.
+
+        Returns:
+            Filepath to the generated file.
+        """
         filepath = f"logs/{self.collection_name}.txt"
         with open(filepath, "w") as log_file:
             log_file.write(f"Health Log - {self.collection_id}\n")
@@ -64,3 +87,9 @@ class LogCollector:
                 log_file.write("\n")
 
             log_file.write(f"\n\File dumped at {datetime.now()}")
+
+        return filepath
+
+
+# Initialise logger.
+logger = LogCollector()
