@@ -2,3 +2,4 @@
 [ ] - Update metric guide tool.
 [ ] - Sort/cleanup metric file tool.
 [ ] - Read metric files to objects.
+[ ] - Add "backing out" functionality, signify you want correctness checked for mode 1.

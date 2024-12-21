@@ -8,6 +8,7 @@ from metric_file_tools import (
     parse_health_metric,
 )
 from utils import is_verbatim
+from logger import logger
 
 Entry_T = Optional[str]
 data_entry_strptime_format = "%d%m%Y"
@@ -46,11 +47,31 @@ def add_to_metric(metric_name: str, value: AllowedMetricTypes, date: datetime):
 
 
 class InputHandlerFunction:
+    """
+    Class to represent an input handler. An input handler receives input from the user,
+    specifically for a new data entry, and decides how to ingest, process and log the input.
+
+    This parent class defines the `parse_input_str()` function, which handles the raw user input
+    and decides how to return this. Classes that extend this one *should not* need to override this,
+    but are more than welcome to to add new functionality.
+
+    Attributes:
+        last_metric_used: Records the most recent metric name processed by this handler.
+        last_value_used: Records the most recent metric value processed by this handler.
+        last_date_recorded: Records the most recent datetime processed by this handler.
+    """
+
     last_metric_used: str = None
     last_value_used: AllowedMetricTypes = None
     last_date_recorded: datetime = datetime(year=1, month=1, day=1)
 
     def __init__(self, recognised_metrics: list[str]):
+        """
+        Initialises a new handler.
+
+        Attributes:
+            recognised_metrics: A list of metric files currently found in the file dir.
+        """
         self.recognised_metrics = recognised_metrics
 
     def parse_input_str(
@@ -59,6 +80,16 @@ class InputHandlerFunction:
         """
         Accepts a string representing the triplet of input values. Returns required information
         for input handling. Resolves any wildcards at this stage, and manages their storage.
+
+        This function should only be overridden to provide subclass specific parsing functionality,
+        but this is fine. Just don't modify this function, as it is inherited by most subclasses.
+
+        Arguments:
+            input_str: Raw input from the user.
+
+        Returns:
+            A tuple representing the classic 3 element input required for a new measurement, or
+            None if unable to parse correctly.
         """
 
         # Split Input.
@@ -67,7 +98,7 @@ class InputHandlerFunction:
 
         except ValueError:
             # Could not find three distinct values.
-            # TODO: Log here.
+            logger.add("warning", f"InputHandler unable to parse input: {input_str}")
             return None
 
         # Convert input to datatypes.
@@ -102,6 +133,15 @@ class InputHandlerFunction:
 
 
 class ManualEntryHandler(InputHandlerFunction):
+    """
+    The ManualEntryHandler is used for mode 1 data entry. This assumes the user
+    input is correct and intentional. If a recognised metric name is entered,
+    the user measurement will be added to the existing metric. If an unrecognised metric
+    name is entered, this handler *assumes this is intentional* and starts creating
+    a new metric.
+
+    """
+
     def handle_input(self, input_string: str) -> Entry_T:
         parsing_result = self.parse_input_str(input_string)
 
@@ -127,7 +167,21 @@ class ManualEntryHandler(InputHandlerFunction):
 
 
 class AssistedEntryHandler(InputHandlerFunction):
+    """
+    The AssistedEntryHandler is used for mode 2 data entry. This assumes the user
+    input is incorrect if not recognised, and needs to be matched to the closest
+    recognised metric name by presenting the user with a list of similar
+    metrics and allowing them to choose whether to use one of those, or read
+    their input verbatim.
+    """
+
     required_close_matches = 3
+
+    def set_required_close_matches(self, required_matches: int):
+        if required_matches > 0:
+            self.required_close_matches = required_matches
+        else:
+            logger.add("warning", "Can't set required matches to less than zero.")
 
     def handle_input(self, input_string: str) -> Entry_T:
         parsing_result = self.parse_input_str(input_string)
@@ -181,6 +235,12 @@ class AssistedEntryHandler(InputHandlerFunction):
 
 
 class SpeedyEntryHandler(InputHandlerFunction):
+    """
+    The SpeedyEntryHandler is used for mode 3 data entry. This assumes the user
+    input is incorrect if not recognised, and needs to be matched to the closest
+    recognised metric name. This matching occurs without user input.
+    """
+
     def handle_input(self, input_string: str) -> Entry_T:
         parsing_result = self.parse_input_str(input_string)
 
@@ -206,6 +266,11 @@ class SpeedyEntryHandler(InputHandlerFunction):
                 # Not recognised and not verbatim, use the closest match.
                 similar_metrics = get_closest_matches(
                     metric_name, self.recognised_metrics, 1
+                )
+
+                logger.add(
+                    "action",
+                    f"{metric_name} not recognised, MODE 3 matched to {similar_metrics[0]}.",
                 )
 
                 metric_name = similar_metrics[0]
