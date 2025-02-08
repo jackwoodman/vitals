@@ -86,7 +86,7 @@ class LogCollector:
                 log_file.write(log.to_string())
                 log_file.write("\n")
 
-            log_file.write(f"\n\File dumped at {datetime.now()}")
+            log_file.write(f"\nFile dumped at {datetime.now()}")
 
         return filepath
 

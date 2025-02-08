@@ -1,10 +1,12 @@
 from typing import Optional
-from classes import AllowedMetricTypes, Measurement
+from classes import AllowedMetricValueTypes, HealthMetric, InequalityMeasurement, InequalityValue, Measurement
 from datetime import datetime
 from sequence_matcher import get_closest_matches
 from metric_file_tools import (
     add_measurement_to_metric_file,
     generate_metric_file,
+    get_filenames_without_extension,
+    is_inequality_value_str,
     parse_health_metric,
 )
 from utils import is_verbatim
@@ -28,22 +30,30 @@ rules:
 """
 
 
-def generate_new_metric(metric_name: str):
+def generate_new_metric(metric_name: str, unit: Optional[str] = None) -> HealthMetric:
     """
     Given a metric name, parse from the user the required information to generate
     a new metric. Use this to generate a new metric file.
 
     """
-    new_health_metric = parse_health_metric(metric_name=metric_name)
+    new_health_metric = parse_health_metric(metric_name=metric_name, unit=unit)
     generate_metric_file(health_metric=new_health_metric)
 
+    return new_health_metric
 
-def add_to_metric(metric_name: str, value: AllowedMetricTypes, date: datetime):
+
+def add_to_metric(metric_name: str, value: AllowedMetricValueTypes, date: datetime, unit: Optional[str] = None):
+
+    if isinstance(value, InequalityValue):
+        measurement = InequalityMeasurement(bound=value.value, inequality=value.inequality_type, date=date, unit=unit)
+    else:
+        measurement=Measurement(value=value, date=date, unit=unit)
+
     # Create new metric entry.
     add_measurement_to_metric_file(
-        metric_name=metric_name, measurement=Measurement(value=value, date=date)
+        metric_name=metric_name, measurement=measurement
     )
-    pass
+
 
 
 class InputHandler:
@@ -59,24 +69,34 @@ class InputHandler:
         last_metric_used: Records the most recent metric name processed by this handler.
         last_value_used: Records the most recent metric value processed by this handler.
         last_date_recorded: Records the most recent datetime processed by this handler.
+        last_unit_used: Records the most recent unit processed by this handler.
     """
 
     last_metric_used: str = None
-    last_value_used: AllowedMetricTypes = None
+    last_value_used: AllowedMetricValueTypes = None
     last_date_recorded: datetime = datetime(year=1, month=1, day=1)
+    last_unit_used: str = None
 
-    def __init__(self, recognised_metrics: list[str]):
+    def __init__(self, metric_file_path: str):
         """
         Initialises a new handler.
 
         Attributes:
-            recognised_metrics: A list of metric files currently found in the file dir.
+            metric_file_path: Path to metric file dir.
         """
-        self.recognised_metrics = recognised_metrics
+        self.metric_file_path = metric_file_path
+        self.update_recognised_metrics()
+
+    def update_recognised_metrics(self) -> int:
+        """
+        Updates the list of recognised metrics, returning the count.
+        """
+
+        self.recognised_metrics = get_filenames_without_extension(self.metric_file_path)
 
     def parse_input_str(
         self, input_str: str
-    ) -> Optional[tuple[str, AllowedMetricTypes, datetime]]:
+    ) -> Optional[tuple[str, AllowedMetricValueTypes, datetime]]:
         """
         Accepts a string representing the triplet of input values. Returns required information
         for input handling. Resolves any wildcards at this stage, and manages their storage.
@@ -92,9 +112,20 @@ class InputHandler:
             None if unable to parse correctly.
         """
 
-        # Split Input.
+        # Split Input - entries are positional.
         try:
-            metric_name_str, value_str, date_str = input_str.split(" ")
+            distinct_entries = list(input_str.split(" "))
+
+            # Base input - name, value, date.
+            if len(distinct_entries) == 3:
+                metric_name_str, value_str, date_str = distinct_entries
+                unit_str = None
+            # Second case - units included.
+            elif len(distinct_entries) == 4:
+                metric_name_str, value_str, date_str, unit_str = distinct_entries
+            else:
+                # This many values is not recognised (yet).
+                raise ValueError()
 
         except ValueError:
             # Could not find three distinct values.
@@ -103,13 +134,16 @@ class InputHandler:
 
         # Convert input to datatypes.
         if value_str == "*":
-            value: AllowedMetricTypes = self.last_value_used
+            value: AllowedMetricValueTypes = self.last_value_used
         else:
             # If value is boolean, try to parse.
             if value_str.lower() in ["true", "false"]:
-                value = value_str.lower() == "true"
+                value = (value_str.lower() == "true")
+            elif is_inequality_value_str(input_str=value_str):
+                # Is an inequality.
+                value = InequalityValue(value_str)
             else:
-                # Not bool, may be floating point.
+                # Not bool or inequality, may be floating point.
                 try:
                     value = float(value_str)
                 except ValueError:
@@ -128,8 +162,9 @@ class InputHandler:
         self.last_metric_used = metric_name
         self.last_value_used = value
         self.last_date_recorded = date
+        self.last_unit_used = unit_str or None
 
-        return (metric_name, value, date)
+        return (metric_name.lower(), value, date, unit_str or None)
 
     def handle_input():
         """*MUST BE IMPLEMENTED*"""
@@ -157,7 +192,7 @@ class ManualEntryHandler(InputHandler):
             return None
 
         # Parse succesful, unpack.
-        metric_name, value, date = parsing_result
+        metric_name, value, date, unit = parsing_result
 
         # Check for verbatim here just in case user mistakes this
         # for a different handler. Makes no difference, just need to
@@ -167,10 +202,11 @@ class ManualEntryHandler(InputHandler):
 
         # Check if generating new metric, or adding to metric;
         if metric_name in self.recognised_metrics:
-            add_to_metric(metric_name, value, date)
+            add_to_metric(metric_name, value, date, unit)
         else:
-            generate_new_metric(metric_name)
-            add_to_metric(metric_name, value, date)
+            generate_new_metric(metric_name, unit)
+            add_to_metric(metric_name, value, date, unit)
+            self.update_recognised_metrics()
 
 
 class AssistedEntryHandler(InputHandler):
@@ -198,7 +234,7 @@ class AssistedEntryHandler(InputHandler):
             return None
 
         # Parse succesful, unpack.
-        metric_name, value, date = parsing_result
+        metric_name, value, date, unit = parsing_result
 
         # Check if generating new metric, or adding to metric;
         if metric_name in self.recognised_metrics:
@@ -209,8 +245,8 @@ class AssistedEntryHandler(InputHandler):
                 print(
                     f"Creating new metric '{verbatim_result}' and adding measurement."
                 )
-                generate_new_metric(verbatim_result)
-                add_to_metric(verbatim_result, value, date)
+                generate_new_metric(verbatim_result, unit)
+                add_to_metric(verbatim_result, value, date, unit)
             else:
                 # Not recognised, find close to.
                 similar_metrics = get_closest_matches(
@@ -232,13 +268,14 @@ class AssistedEntryHandler(InputHandler):
                     print(
                         f"Creating new metric '{metric_name}' and adding measurement."
                     )
-                    generate_new_metric(metric_name)
-                    add_to_metric(metric_name, value, date)
+                    generate_new_metric(metric_name, unit)
+                    add_to_metric(metric_name, value, date, unit)
+                    self.update_recognised_metrics()
                 else:
                     # User chose from existing names.
                     metric_name = similar_metrics[int(user_response) - 1]
                     print(f"Adding measurement to {metric_name}.")
-                    add_to_metric(metric_name, value, date)
+                    add_to_metric(metric_name, value, date, unit)
 
 
 class SpeedyEntryHandler(InputHandler):
@@ -256,19 +293,20 @@ class SpeedyEntryHandler(InputHandler):
             return None
 
         # Parse succesful, unpack.
-        metric_name, value, date = parsing_result
+        metric_name, value, date, unit = parsing_result
 
         # Check if generating new metric, or adding to metric;
         if metric_name in self.recognised_metrics:
-            add_to_metric(metric_name, value, date)
+            add_to_metric(metric_name, value, date, unit)
         else:
             # Check first for verbatim request.
             if verbatim_result := is_verbatim(metric_name):
                 print(
                     f"Creating new metric '{verbatim_result}' and adding measurement."
                 )
-                generate_new_metric(verbatim_result)
-                add_to_metric(verbatim_result, value, date)
+                generate_new_metric(verbatim_result, unit)
+                add_to_metric(verbatim_result, value, date, unit)
+                self.update_recognised_metrics()
             else:
                 # Not recognised and not verbatim, use the closest match.
                 similar_metrics = get_closest_matches(
@@ -279,6 +317,7 @@ class SpeedyEntryHandler(InputHandler):
                     "action",
                     f"{metric_name} not recognised, MODE 3 matched to {similar_metrics[0]}.",
                 )
+                print(f"[matched '{metric_name}' to '{similar_metrics[0]}']")
 
                 metric_name = similar_metrics[0]
-                add_to_metric(metric_name, value, date)
+                add_to_metric(metric_name, value, date, unit)

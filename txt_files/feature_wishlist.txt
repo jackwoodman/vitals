@@ -4,3 +4,5 @@
 [ ] - Read metric files to objects.
 [ ] - Add "backing out" functionality, signify you want correctness checked for mode 1.
 [ ] - Swap between handlers without backing out to HLL.
+[ ] - Ability to create empty metric files, so you can make multiple quickly and enter in mode 3 after.
+[ ] - Mass update metric unit tool.

@@ -1,11 +1,12 @@
+from classes import InequalityMeasurement
 from mgmt_functions import rename
 from metric_file_tools import (
     FILE_DIR_NAME,
     create_metric_dir,
     load_metric_from_json,
     read_metric_file_to_json,
-    get_filenames_without_extension,
 )
+from cli_displays import prompt_user, welcome
 from data_entry import (
     AssistedEntryHandler,
     InputHandler,
@@ -26,7 +27,7 @@ def high_level_loop():
 
     while True:
         # Parse new user input.
-        requested_function = input(" -> ").lower()
+        requested_function = prompt_user("main")
 
         # Attempt to run requested function.
         if requested_function in function_mapping.keys():
@@ -43,6 +44,7 @@ def write():
     """
     Loop to ingest input for writing new measurements and metrics.
     """
+    c_level = "write"
     handler_mapping: dict[int, InputHandler] = {
         1: ManualEntryHandler,
         2: AssistedEntryHandler,
@@ -51,7 +53,8 @@ def write():
     handler_descriptions: dict[int, str] = {1: "MANUAL", 2: "ASSIST", 3: "SPEEDY"}
 
     # Get required entry handler, default to manual mode,
-    req_handler = int(input("Select handler mode (1, 2, or 3): "))
+    print("\nSelect handler mode (1, 2, or 3): ")
+    req_handler = int(prompt_user(["main", c_level]))
     handler_callable: InputHandler = handler_mapping.get(
         req_handler, ManualEntryHandler
     )
@@ -59,7 +62,7 @@ def write():
 
     # Instantiate the required handler.
     handler: InputHandler = handler_callable(
-        recognised_metrics=get_filenames_without_extension(FILE_DIR_NAME)
+        metric_file_path=FILE_DIR_NAME
     )
 
     # Run writing loop using this handler.
@@ -67,7 +70,7 @@ def write():
     print("\nStarting input loop, format is 'metric measurement DDMMYYYY'")
     print("    (type 'exit' to quit)\n")
     while True:
-        new_input = input(f"({handler_description}): ")
+        new_input = prompt_user(["main", c_level, handler_description])
 
         # Catch exit request.
         if new_input == "exit":
@@ -82,14 +85,17 @@ def read():
     """
     Loop to handle reading a metric file to HealthMetric object. WIP.
     """
-    target_metric = input("-> read which metric file? ")
+    print("read which metric file?")
+    target_metric = prompt_user("read")
     health_file = read_metric_file_to_json(target_metric)
     health_metric = load_metric_from_json(health_file)
 
     print(f"Ingested '{health_metric.metric_name}':")
     for measurement in health_metric.entries:
-        print("    ", measurement.value, measurement.date)
 
+        print(" - ", f"{str(measurement)}{(" "+measurement.unit) if measurement.unit else ""}", " -> ", measurement.date)
+
+    print()
 
 def manage():
     # Defines mapping of commands to their respective functions.
@@ -123,6 +129,7 @@ def exit():
 
 
 if __name__ == "__main__":
+    welcome()
     # If no directory exists, generate one.
     create_metric_dir()
 

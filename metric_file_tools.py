@@ -1,8 +1,11 @@
 import json
 from pathlib import Path
+from typing import Optional
 from classes import (
     GreaterThanMetric,
     HealthMetric,
+    InequalityMeasurement,
+    InequalityValue,
     LessThanMetric,
     Measurement,
     MetricType,
@@ -11,7 +14,7 @@ from classes import (
 )
 from logger import logger
 
-FILE_VERS = 7
+FILE_VERS = 9
 FILE_DIR_NAME = "metric_files"
 FILE_DIR_PATH = Path(FILE_DIR_NAME)
 
@@ -29,6 +32,13 @@ def create_metric_dir():
     FILE_DIR_PATH.mkdir(parents=True, exist_ok=True)
     return True
 
+def is_inequality_value_str(input_str: str) -> bool:
+    """
+    Test whether input string is a candidate for representing an "InequalityValue".
+    """
+    if "<" in str(input_str) or ">" in str(input_str):
+        return True
+    return False
 
 def read_metric_file_to_json(metric_name: str):
     """
@@ -48,6 +58,10 @@ def read_metric_file_to_json(metric_name: str):
 
 
 def load_metric_from_json(health_data: dict) -> HealthMetric:
+    """
+    Given the JSON object from reading a health file, produce a HealthMetric
+    object representing this file.
+    """
     metric_name = health_data["metric_name"]
     file_version = health_data["file_version"]
 
@@ -82,10 +96,14 @@ def load_metric_from_json(health_data: dict) -> HealthMetric:
         metric = HealthMetric(metric_name=metric_name)
 
     for data_point in data_values:
-        date = data_point["date"]
-        value = float(data_point["value"])
+        date = data_point["date"]                   
+        possible_unit = data_point.get("unit", health_data.get("unit", None))
+        if is_inequality_value_str(data_point["value"]):
+            value_parsed = InequalityValue(data_point["value"])
+            metric.add_entry(InequalityMeasurement(value_parsed.value, value_parsed.inequality_type, date, unit=possible_unit))
 
-        metric.add_entry(Measurement(value, date))
+        else:
+            metric.add_entry(Measurement(data_point["value"], date, unit=possible_unit))
 
     return metric
 
@@ -112,15 +130,20 @@ def generate_metric_file(health_metric: HealthMetric) -> str:
     """
     file_path = f"{FILE_DIR_NAME}/{health_metric.metric_name}.json"
 
-    with open(file_path, "w") as health_file:
-        json.dump(
-            {
+    preformed_dictionary = {
                 "metric_name": health_metric.metric_name,
                 "file_version": FILE_VERS,
                 "metric_type": health_metric.metric_type.value,
                 "metric_guide": health_metric.metric_guide(),
                 "data": [],
-            },
+            }
+    
+    if health_metric.unit:
+        preformed_dictionary["unit"] = health_metric.unit
+
+    with open(file_path, "w") as health_file:
+        json.dump(
+            preformed_dictionary,
             health_file,
         )
 
@@ -147,11 +170,19 @@ def add_measurement_to_metric_file(metric_name: str, measurement: Measurement):
         print(f"Error: File {filename} not found. Please create the file first.")
         return
 
+
     # Convert datetime to string in ISO format
     date_str = measurement.date.isoformat()
 
     # Add new entry
-    new_entry = {"date": date_str, "value": measurement.value}
+    new_entry = {"date": date_str, "value": measurement.value if not isinstance(measurement, InequalityMeasurement) else str(measurement)}
+    # Check measurement has own unit.
+    if measurement.unit:
+        new_entry["unit"] = measurement.unit
+    elif (unit_from_file := data.get("unit")):
+        # If no unit, try to use value default.
+        new_entry["unit"] = unit_from_file 
+
     data["data"].append(new_entry)
 
     # Write updated data back to the file
@@ -202,7 +233,7 @@ def rename_health_file(current_metric_name: str, new_metric_name: str):
         print(f"An error occurred: {e}")
 
 
-def parse_health_metric(metric_name: str) -> HealthMetric:
+def parse_health_metric(metric_name: str, unit: Optional[str] = None) -> HealthMetric:
     """
     Given the name of a new metric file, prompt the user to select the type of metric,
     and generate the required HealthMetric object to store this data.
@@ -273,16 +304,21 @@ def parse_health_metric(metric_name: str) -> HealthMetric:
 
     elif parsed_metric_type == MetricType.Boolean:
         print(
-            f"\Input ideal value for new Boolean metric '{metric_name}',  format is  'boolean':"
+            f"\nInput ideal value for new Boolean metric '{metric_name}',  format is  'boolean':"
         )
         boolean = str(input(prompt)).lower() == "true"
         metric = BooleanMetric(metric_name=metric_name, ideal_boolean_value=boolean)
 
     elif parsed_metric_type == MetricType.Metric:
-        print(f"\Creating new generic metric '{metric_name}' (metric):")
+        print(f"\nCreating new generic metric '{metric_name}' (metric):")
         metric = HealthMetric(metric_name=metric_name)
 
     print(
         f"\n === New metric file '{metric_name}' generated (reporting {len(get_filenames_without_extension(FILE_DIR_NAME)) + 1} metric files) === \n"
     )
+
+    # Assign default unit if provided.
+    if unit:
+        metric.assign_unit(unit=unit)
+
     return metric
