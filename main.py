@@ -1,5 +1,5 @@
 from classes import InequalityMeasurement
-from mgmt_functions import rename
+from mgmt_functions import rename, search, show
 from metric_file_tools import (
     FILE_DIR_NAME,
     create_metric_dir,
@@ -29,9 +29,16 @@ def high_level_loop():
         # Parse new user input.
         requested_function = prompt_user("main")
 
+        # Split function from arguments.
+        if len(func_arg_pair := requested_function.split(" ")) > 1:
+            requested_function = func_arg_pair[0]
+            arguments = func_arg_pair[1:]
+        else:
+            arguments = []
+
         # Attempt to run requested function.
         if requested_function in function_mapping.keys():
-            function_mapping[requested_function]()
+            function_mapping[requested_function](arguments)
         else:
             logger.add("warning", f"'{requested_function}' is not recognised.")
 
@@ -40,7 +47,7 @@ def high_level_loop():
             return
 
 
-def write():
+def write(_: list):
     """
     Loop to ingest input for writing new measurements and metrics.
     """
@@ -61,9 +68,7 @@ def write():
     handler_description = handler_descriptions.get(req_handler, "MANUAL")
 
     # Instantiate the required handler.
-    handler: InputHandler = handler_callable(
-        metric_file_path=FILE_DIR_NAME
-    )
+    handler: InputHandler = handler_callable(metric_file_path=FILE_DIR_NAME)
 
     # Run writing loop using this handler.
     logger.add("info", "Entering input loop.")
@@ -81,26 +86,54 @@ def write():
         handler.handle_input(new_input)
 
 
-def read():
+def read(arguments: list):
     """
     Loop to handle reading a metric file to HealthMetric object. WIP.
+
+    Accepted arguments:
+        Position 1: Name of file to read.
+
     """
-    print("read which metric file?")
-    target_metric = prompt_user("read")
+    # Read requested file.
+    if arguments:
+        target_metric = arguments[0]
+    else:
+        print("read which metric file?")
+        target_metric = prompt_user("read")
+
+    # Build health metric object from requested file.
     health_file = read_metric_file_to_json(target_metric)
-    health_metric = load_metric_from_json(health_file)
+
+    if health_file:
+        health_metric = load_metric_from_json(health_file)
+    else:
+        return
 
     print(f"Ingested '{health_metric.metric_name}':")
-    for measurement in health_metric.entries:
 
-        print(" - ", f"{str(measurement)}{(" "+measurement.unit) if measurement.unit else ""}", " -> ", measurement.date)
+    # Check nonzero entries:
+    if len(health_metric.entries) > 0:
+        print(f"(Found {len(health_metric.entries)} entries)")
+        for measurement in health_metric.entries:
+            print(
+                " - ",
+                f"{str(measurement)}{(" "+measurement.unit) if measurement.unit else ""}",
+                " -> ",
+                measurement.date,
+            )
 
-    print()
+    else:
+        print("File is empty.")
 
-def manage():
+    print("\n")
+
+
+def manage(_: list):
     # Defines mapping of commands to their respective functions.
     function_mapping: dict[str, callable] = {
         "rename": rename,
+        "show": show,
+        "search": search,
     }
 
     print("Entering management terminal.")
@@ -122,7 +155,7 @@ def manage():
             logger.add("warning", f"'{requested_function}' is not recognised.")
 
 
-def exit():
+def exit(_: list):
     """End high level loop."""
     logger.add("action", "Exiting high level loop now.")
     logger.dump_to_file()
