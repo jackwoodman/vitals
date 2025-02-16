@@ -14,6 +14,7 @@ from data_entry import (
     SpeedyEntryHandler,
 )
 from logger import logger
+from utils import attempt_ingest_from_name
 
 
 def high_level_loop():
@@ -21,6 +22,7 @@ def high_level_loop():
     function_mapping: dict[str, callable] = {
         "write": write,
         "read": read,
+        "graph": graph,
         "manage": manage,
         "exit": exit,
     }
@@ -94,22 +96,7 @@ def read(arguments: list):
         Position 1: Name of file to read.
 
     """
-    # Read requested file.
-    if arguments:
-        target_metric = arguments[0]
-    else:
-        print("read which metric file?")
-        target_metric = prompt_user("read")
-
-    # Build health metric object from requested file.
-    health_file = read_metric_file_to_json(target_metric)
-
-    if health_file:
-        health_metric = load_metric_from_json(health_file)
-    else:
-        return
-
-    print(f"Ingested '{health_metric.metric_name}':")
+    health_metric = attempt_ingest_from_name(arguments, "read")
 
     # Check nonzero entries:
     if len(health_metric.entries) > 0:
@@ -159,6 +146,16 @@ def exit(_: list):
     """End high level loop."""
     logger.add("action", "Exiting high level loop now.")
     logger.dump_to_file()
+
+
+def graph(arguments: list):
+    # Initial testing, get single metric to graph.
+    # Read requested file.
+    health_metric = attempt_ingest_from_name(arguments, "graph")
+
+    if health_metric:
+        plot = health_metric.generate_plot()
+        plot.show()
 
 
 if __name__ == "__main__":

@@ -1,4 +1,8 @@
-from typing import Optional
+from typing import Optional, Union
+
+from classes import HealthMetric
+from cli_displays import prompt_user
+from metric_file_tools import load_metric_from_json, read_metric_file_to_json
 
 
 def is_verbatim(input_text: str) -> Optional[str]:
@@ -28,3 +32,40 @@ def is_verbatim(input_text: str) -> Optional[str]:
 
     # Not verbatim
     return None
+
+
+def attempt_ingest_from_name(
+    metric_input: Optional[Union[str, list]] = None,
+    prompt_verb: str = "load",
+    verbose: bool = False,
+) -> Optional[HealthMetric]:
+    """
+    Helper function, that will attempt to ingest a health metric from file and return as a HealthMetric object.
+    If no name is provided, it will prompt the user, using the prompt_verb if provided.
+    If unable to load, will return None.
+    """
+
+    # If none provided, ask the user for the name.
+    if not metric_input:
+        print(f"{prompt_verb} which metric file?")
+        metric_name = prompt_user(prompt_verb)
+    elif isinstance(metric_input, list):
+        # Argument input from the HLL.
+        metric_name = metric_input[0]
+    else:
+        # Input is valid as is, this case is just for clarity.
+        metric_name = metric_input
+
+    # Build health metric object from requested file.
+    health_file = read_metric_file_to_json(metric_name)
+
+    # Build metric object and return.
+    if health_file:
+        ingested_metric = load_metric_from_json(health_file)
+        if verbose and ingested_metric:
+            print(f"Ingested and built '{ingested_metric.metric_name}'.")
+
+        return ingested_metric
+
+    else:
+        return None

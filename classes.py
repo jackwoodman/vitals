@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional, Union
-from plotting import initialize_plot, add_lines
+from plotting import add_single_line, initialize_plot, add_lines
 
 
 class InequalityValue:
@@ -16,11 +16,14 @@ class InequalityValue:
             self.value = possible_value
             self.inequality_type = InequalityType("greater_than")
 
+
 AllowedMetricValueTypes = Union[bool, float, str, InequalityValue]
+
 
 class InequalityType(Enum):
     GreaterThan = "greater_than"
     LessThan = "less_than"
+
 
 class MetricType(Enum):
     Ranged = "ranged"
@@ -31,20 +34,29 @@ class MetricType(Enum):
 
 
 class Measurement:
-    def __init__(self, value: AllowedMetricValueTypes, date: datetime, unit: Optional[str] = None):
+    def __init__(
+        self, value: AllowedMetricValueTypes, date: datetime, unit: Optional[str] = None
+    ):
         self.value = value
         self.date = date
         self.unit = unit
 
     def update_unit(self, data: dict):
-        if (found_unit := data.get("unit")):
+        if found_unit := data.get("unit"):
             self.unit = found_unit
 
     def __str__(self) -> str:
         return str(self.value)
 
+
 class InequalityMeasurement(Measurement):
-    def __init__(self, bound: float, inequality: InequalityType, date: datetime, unit: Optional[str] = None):
+    def __init__(
+        self,
+        bound: float,
+        inequality: InequalityType,
+        date: datetime,
+        unit: Optional[str] = None,
+    ):
         super().__init__(bound, date, unit)
         self.inequality = inequality
 
@@ -54,6 +66,7 @@ class InequalityMeasurement(Measurement):
         """
         operator = ">" if self.inequality == InequalityType.GreaterThan else "<"
         return f"{operator}{self.value}"
+
 
 class HealthMetric:
     def __init__(self, metric_name: str, metric_type: MetricType = MetricType.Metric):
@@ -73,7 +86,7 @@ class HealthMetric:
 
     def generate_plot(self):
         single_plot = initialize_plot()
-        return add_lines(single_plot, [self.entries])
+        return add_single_line(single_plot, self)
 
     def __str__(self):
         return (
