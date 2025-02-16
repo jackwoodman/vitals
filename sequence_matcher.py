@@ -1,4 +1,5 @@
 from difflib import SequenceMatcher
+from typing import Optional
 
 
 def get_closest_matches(
@@ -23,3 +24,6 @@ def get_closest_matches(
     ]
 
     return sorted_ranks[:number_of_results]
+
+def get_closest_match(candidate_string: str, possible_strings: list[str]) -> Optional[str]:
+    return get_closest_matches(candidate_string=candidate_string, possible_strings=possible_strings, number_of_results=1)[0]

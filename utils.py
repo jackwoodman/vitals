@@ -2,7 +2,13 @@ from typing import Optional, Union
 
 from classes import HealthMetric
 from cli_displays import prompt_user
-from metric_file_tools import load_metric_from_json, read_metric_file_to_json
+from metric_file_tools import (
+    FILE_DIR_NAME,
+    get_filenames_without_extension,
+    load_metric_from_json,
+    read_metric_file_to_json,
+)
+from sequence_matcher import get_closest_match
 
 
 def is_verbatim(input_text: str) -> Optional[str]:
@@ -38,6 +44,7 @@ def attempt_ingest_from_name(
     metric_input: Optional[Union[str, list]] = None,
     prompt_verb: str = "load",
     verbose: bool = False,
+    match_close_names: bool = False,
 ) -> Optional[HealthMetric]:
     """
     Helper function, that will attempt to ingest a health metric from file and return as a HealthMetric object.
@@ -57,7 +64,14 @@ def attempt_ingest_from_name(
         metric_name = metric_input
 
     # Build health metric object from requested file.
-    health_file = read_metric_file_to_json(metric_name)
+    health_file = read_metric_file_to_json(metric_name) or (
+        read_metric_file_to_json(
+            get_closest_match(
+                metric_name, get_filenames_without_extension(FILE_DIR_NAME)
+            )
+        )
+        and print("Matching nearest. REPLACE ME WITH A LOG.")
+    )
 
     # Build metric object and return.
     if health_file:
@@ -67,5 +81,4 @@ def attempt_ingest_from_name(
 
         return ingested_metric
 
-    else:
-        return None
+    return None
