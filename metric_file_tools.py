@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 from typing import Optional
 from cli_displays import cli_warn
@@ -242,7 +241,7 @@ def generate_metric_file(health_metric: HealthMetric) -> str:
 
 def get_filenames_without_extension(directory):
     """Returns a list of filenames in the given directory without their extensions."""
-    directory_path = Path(directory)
+    directory_path = Path(directory) if isinstance(directory, str) else directory
     filenames = [file.stem for file in directory_path.iterdir() if file.is_file()]
 
     return filenames
@@ -453,3 +452,10 @@ def parse_health_metric(metric_name: str, unit: Optional[str] = None) -> HealthM
         metric.assign_unit(unit=unit)
 
     return metric
+
+
+def get_all_metric_files() -> list[HealthMetric]:
+    return [
+        generate_health_metric_from_file(metric)
+        for metric in get_filenames_without_extension(FILE_DIR_PATH)
+    ]

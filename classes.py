@@ -88,6 +88,15 @@ class HealthMetric:
         single_plot = initialize_plot()
         return add_single_line(single_plot, self)
 
+    def get_all_OoR_values(self) -> list[Measurement]:
+        OoR_values = [
+            oor_measurement
+            for oor_measurement in self.entries
+            if self.value_is_out_of_range(oor_measurement)
+        ]
+
+        return OoR_values
+
     def __str__(self):
         return (
             f"Metric: {self.metric_name.upper()} -> {len(self.entries)} entries. "
@@ -96,6 +105,10 @@ class HealthMetric:
 
     def metric_guide(self) -> str:
         return "Generic Metric"
+
+    def value_is_out_of_range(self, value: Measurement) -> bool:
+        """Must be implemented."""
+        pass
 
 
 class RangedMetric(HealthMetric):
@@ -107,6 +120,9 @@ class RangedMetric(HealthMetric):
     def metric_guide(self) -> str:
         return (self.range_minimum, self.range_maximum)
 
+    def value_is_out_of_range(self, value: Measurement) -> bool:
+        return not (self.range_minimum < value.value < self.range_maximum)
+
 
 class GreaterThanMetric(HealthMetric):
     def __init__(self, metric_name: str, minimum_value: float):
@@ -115,6 +131,9 @@ class GreaterThanMetric(HealthMetric):
 
     def metric_guide(self) -> str:
         return self.bound
+
+    def value_is_out_of_range(self, value: Measurement) -> bool:
+        return value.value <= self.bound
 
 
 class LessThanMetric(HealthMetric):
@@ -125,6 +144,9 @@ class LessThanMetric(HealthMetric):
     def metric_guide(self) -> str:
         return self.bound
 
+    def value_is_out_of_range(self, value: Measurement) -> bool:
+        return value.value >= self.bound
+
 
 class BooleanMetric(HealthMetric):
     def __init__(self, metric_name: str, ideal_boolean_value: bool):
@@ -133,3 +155,7 @@ class BooleanMetric(HealthMetric):
 
     def metric_guide(self) -> bool:
         return self.ideal
+
+    def value_is_out_of_range(self, value: Measurement) -> bool:
+        if type(value) is Measurement:
+            return value.value != self.ideal

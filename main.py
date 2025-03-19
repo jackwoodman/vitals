@@ -1,3 +1,4 @@
+from analysis_tools import find_oor
 from classes import InequalityMeasurement
 from mgmt_functions import rename, search, show
 from metric_file_tools import (
@@ -24,6 +25,7 @@ def high_level_loop():
         "read": read,
         "graph": graph,
         "manage": manage,
+        "analyse": analyse,
         "exit": exit,
     }
 
@@ -124,6 +126,31 @@ def read(arguments: list):
         print("File is empty.")
 
     print("\n")
+
+
+def analyse(_: list):
+    # Defines mapping of commands to their respective functions.
+    function_mapping: dict[str, callable] = {
+        "find_oor": find_oor,
+    }
+
+    print("Entering analysis terminal.")
+    logger.add("info", "Entered analysis terminal.")
+
+    while True:
+        # Parse new user input.
+        requested_function = input("(analyse) -> ").lower()
+
+        # Catch exit call, assuming exit() handled everything.
+        if requested_function == "exit":
+            logger.add("info", "Exiting analysis terminal.")
+            break
+
+        # Attempt to run requested function.
+        if requested_function in function_mapping.keys():
+            function_mapping[requested_function]()
+        else:
+            logger.add("warning", f"'{requested_function}' is not recognised.")
 
 
 def manage(_: list):
