@@ -1,5 +1,5 @@
 from typing import Optional, Union
-
+from logger import logger
 from classes import HealthMetric
 from cli_displays import prompt_user
 from metric_file_tools import (
@@ -70,7 +70,9 @@ def attempt_ingest_from_name(
                 metric_name, get_filenames_without_extension(FILE_DIR_NAME)
             )
         )
-        and print("Matching nearest. REPLACE ME WITH A LOG.")
+        and logger.add(
+            "INFO", f"{metric_name} could not be found, matching with closest."
+        )
     )
 
     # Build metric object and return.

@@ -43,23 +43,40 @@ class LogCollector:
         )
         self.should_display_logs = display_logs
 
-    def add(self, log_level: str, log: str):
+    def add(self, log_level: str, log: str, cli_out: bool = False):
         """
         Add new log entry from text.
+
+        Arguments:
+            log_level: The log level identifier.
+            log: The string to be logged.
+            cli_out: If true, will print to output.
         """
 
         if log_level.upper() in self.accepted_log_types:
             log_event = LogEntry(log_type_str=log_level.upper(), log_string=log)
+
+            if cli_out:
+                print(f"{(log_level.upper()) - {log}}")
         else:
             log_event = LogEntry(log_type_str="unknown", log_string=log)
+
+            if cli_out:
+                print(f"UNKNOWN - {log}")
+
         self.collection.append(log_event)
 
         if self.should_display_logs:
             print(log_event.to_string())
 
+        return log_event
+
     def add_entry(self, new_log: LogEntry):
         """
-        Add new log entry from LogEntry object..
+        Add new log entry from LogEntry object.
+
+         Arguments:
+            new_log: The LogEntry to be logged.
         """
         self.collection.append(new_log)
 

@@ -2,8 +2,7 @@
 [ ] - Update metric guide tool.
 [ ] - Sort/cleanup metric file tool.
 [X] - Read metric files to objects.
-[ ] - Add "backing out" functionality, signify you want correctness checked for mode 1.
-[ ] - Swap between handlers without backing out to HLL.
+[X] - Add "backing out" functionality, signify you want correctness checked for mode 1.
 [ ] - Ability to create empty metric files, so you can make multiple quickly and enter in mode 3 after.
 [ ] - Mass update metric unit tool.
 [ ] - OoR search - find examples where metric entry is out of range.

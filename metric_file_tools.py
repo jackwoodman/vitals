@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 from typing import Optional
 from cli_displays import cli_warn
@@ -37,15 +38,28 @@ def create_metric_dir():
 def is_inequality_value_str(input_str: str) -> bool:
     """
     Test whether input string is a candidate for representing an "InequalityValue".
+
+    Arguments:
+        input_str: The string, representing a value, to be tested.
+
+    Returns:
+        Bool indicating whether value looks like an inequality value, or not.
     """
     if "<" in str(input_str) or ">" in str(input_str):
         return True
     return False
 
 
-def read_metric_file_to_json(metric_name: str):
+def read_metric_file_to_json(metric_name: str) -> dict:
     """
-    Return metric JSON data
+    Given the name of a health metric file, load said file and return
+    JSON dict.
+
+    Arguments:
+        metric_name: Name of metric file, without the .json.
+
+    Returns:
+        JSON dict of metric_name.
     """
     filename = (
         f"{FILE_DIR_NAME}/{metric_name}.json"
@@ -66,15 +80,28 @@ def read_metric_file_to_json(metric_name: str):
         return None
 
 
-def load_metric_from_json(health_data: dict) -> HealthMetric:
+def load_metric_from_json(health_data: dict) -> Optional[HealthMetric]:
     """
     Given the JSON object from reading a health file, produce a HealthMetric
     object representing this file.
-    """
-    metric_name = health_data["metric_name"]
-    file_version = health_data["file_version"]
-    file_is_outdated = False
 
+    Arguments:
+        health_data: A JSON dict representing an input health file.
+
+    Returns:
+        A HealthMetric object representing the input file, or None if parsing failed.
+    """
+
+    # All versions of health files have a name and a version. If missing, file is misformed.
+    try:
+        metric_name = health_data["metric_name"]
+        file_version = health_data["file_version"]
+    except KeyError as e:
+        cli_warn(f"Missing required assumed key: {e}")
+        logger.add("WARNING", f"Missing required assumed key in health data: {e}")
+        return None
+
+    file_is_outdated = False
     # Check for outdated file.
     if file_version < FILE_VERS:
         version_delta = FILE_VERS - file_version
@@ -86,7 +113,6 @@ def load_metric_from_json(health_data: dict) -> HealthMetric:
     try:
         metric_type = MetricType(health_data["metric_type"])
         metric_guide = health_data["metric_guide"]
-
         data_values = health_data["data"]
 
         if metric_type == MetricType.Ranged:
@@ -110,43 +136,70 @@ def load_metric_from_json(health_data: dict) -> HealthMetric:
             )
         elif metric_type == MetricType.Metric:
             metric = HealthMetric(metric_name=metric_name)
+        else:
+            # Metric type doesn't match supported types.
+            fv_warn = f"Metric file type `{metric_type}` is not recognised.\n"
+            cli_warn(fv_warn)
+            logger.add("WARNING", fv_warn)
+            return None
 
-        for data_point in data_values:
+        # Process individual data entries.
+        default_unit = health_data.get("unit")
+        for entry_number, data_point in enumerate(data_values):
+            # Date should be included with each entry.
             date = data_point["date"]
-            possible_unit = data_point.get("unit", health_data.get("unit", None))
-            if is_inequality_value_str(data_point["value"]):
-                value_parsed = InequalityValue(data_point["value"])
-                metric.add_entry(
-                    InequalityMeasurement(
-                        value_parsed.value,
-                        value_parsed.inequality_type,
-                        date,
-                        unit=possible_unit,
-                    )
+            if not date:
+                warning_text = f"Skipping entry '{entry_number}' - no date found."
+                logger.add("WARNING", warning_text)
+                continue
+
+            # Value is implied to exist, it shouldn't be possible for this to not exist.
+            data_point_unit = data_point.get("unit", default_unit)
+            data_point_value = data_point["value"]
+
+            # Inequality measurements are handled uniquely.
+            if is_inequality_value_str(data_point_value):
+                value_parsed = InequalityValue(data_point_value)
+                measurement = InequalityMeasurement(
+                    value_parsed.value,
+                    value_parsed.inequality_type,
+                    date,
+                    unit=data_point_unit,
                 )
 
             else:
-                metric.add_entry(
-                    Measurement(data_point["value"], date, unit=possible_unit)
-                )
+                # Non-equality measurement parsing.
+                measurement = Measurement(data_point_value, date, unit=data_point_unit)
+
+            metric.add_entry(measurement)
     except Exception as e:
         # If file was outdated, this is likely the cause, though this should be refined.
         if file_is_outdated:
             cli_warn(
                 "Unable to parse, likely because file is outdated. Update file and try again."
             )
-            logger.add("WARNING", f"Couldn't parse, outdate file may be the cause. {e}")
-            return None
+            logger.add(
+                "WARNING", f"Couldn't parse, outdated file may be the cause. {e}"
+            )
         else:
             cli_warn("Unable to parse. File was up to date.")
             logger.add("WARNING" "Couldn't parse, reason is unknown. {e}")
-            return None
+        return None
     return metric
 
 
 def generate_health_metric_from_file(filepath: str) -> HealthMetric:
-    health_data = read_metric_file_to_json(metric_name=filepath)
+    """
+    Given the filepath or name of a metric file, load said metric file
+    and return the generated HealthMetric object.
 
+    Arguments:
+        filepath: String filepath or name of metric file.
+
+    Returns:
+        HealthMetric object, or None if parsing was not possible.
+    """
+    health_data = read_metric_file_to_json(metric_name=filepath)
     metric = load_metric_from_json(health_data)
 
     return metric
@@ -164,7 +217,7 @@ def generate_metric_file(health_metric: HealthMetric) -> str:
     Returns:
         A string path to the generated file.
     """
-    file_path = f"{FILE_DIR_NAME}/{health_metric.metric_name}.json"
+    file_path = Path(FILE_DIR_NAME) / f"{health_metric.metric_name}.json"
 
     preformed_dictionary = {
         "metric_name": health_metric.metric_name,
@@ -177,14 +230,14 @@ def generate_metric_file(health_metric: HealthMetric) -> str:
     if health_metric.unit:
         preformed_dictionary["unit"] = health_metric.unit
 
-    with open(file_path, "w") as health_file:
-        json.dump(
-            preformed_dictionary,
-            health_file,
-        )
+    try:
+        file_path.write_text(json.dumps(preformed_dictionary, indent=4))
+    except IOError as e:
+        logger.add("ERROR", f"Failed to write metric file: {e}")
+        raise
 
     logger.add("action", f"Created new metric file `{health_metric.metric_name}.json`.")
-    return file_path
+    return str(file_path)
 
 
 def get_filenames_without_extension(directory):
@@ -195,16 +248,28 @@ def get_filenames_without_extension(directory):
     return filenames
 
 
-def add_measurement_to_metric_file(metric_name: str, measurement: Measurement):
-    """Adds a new entry (date and value) to an existing health JSON file, accepts a datetime object for the date."""
+def add_measurement_to_metric_file(metric_name: str, measurement: Measurement) -> bool:
+    """Adds a new entry (date and value) to an existing health JSON file, accepts a datetime object for the date.
+
+    Arguments:
+        metric_name: Name of the metric to be added to.
+        measurement: Measurement to be added.
+
+    Returns:
+        Bool indicating write success.
+    """
     # Load existing data
-    filename = f"{FILE_DIR_NAME}/{metric_name}.json"
+    file_path = Path(FILE_DIR_NAME) / f"{metric_name}.json"
+
+    if not file_path.exists():
+        print(f"Error: File {file_path} not found. Please create the file first.")
+        return False
+
     try:
-        with open(filename, "r") as f:
-            data = json.load(f)
-    except FileNotFoundError:
-        print(f"Error: File {filename} not found. Please create the file first.")
-        return
+        data = json.loads(file_path.read_text())
+    except json.JSONDecodeError as e:
+        logger.add("ERROR", f"Failed to parse JSON from {file_path}: {e}")
+        return False
 
     # Convert datetime to string in ISO format
     date_str = measurement.date.isoformat()
@@ -225,15 +290,20 @@ def add_measurement_to_metric_file(metric_name: str, measurement: Measurement):
 
     data["data"].append(new_entry)
 
-    # Write updated data back to the file
-    with open(filename, "w") as f:
-        json.dump(data, f, indent=4)
+    try:
+        file_path.write_text(json.dumps(data, indent=4))
+    except IOError as e:
+        logger.add("ERROR", f"Failed to write to metric file {file_path}: {e}")
+        return False
+
+    logger.add("action", f"Added new measurement to '{file_path.name}'.")
+    return True
 
 
 def rename_health_file(current_metric_name: str, new_metric_name: str):
     # Specify the old and new file names
-    old_file = Path(f"{FILE_DIR_NAME}/{current_metric_name}.json")
-    new_file = Path(f"{FILE_DIR_NAME}/{new_metric_name}.json")
+    old_file = Path(FILE_DIR_NAME) / f"{current_metric_name}.json"
+    new_file = Path(FILE_DIR_NAME) / f"{new_metric_name}.json"
 
     # Rename the file
     try:
@@ -246,12 +316,13 @@ def rename_health_file(current_metric_name: str, new_metric_name: str):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-    # Rename attribute.
+    # Read the JSON data from the renamed file.
     try:
         with open(str(new_file), "r") as file:
             data = json.load(file)
         key_to_modify = "metric_name"
 
+        # Update metric_name.
         if key_to_modify in data:
             old_value = data[key_to_modify]
             data[key_to_modify] = new_metric_name
@@ -313,45 +384,65 @@ def parse_health_metric(metric_name: str, unit: Optional[str] = None) -> HealthM
         print(f" ({key}){name[1:]}: {type_descriptions[name]}")
 
     print("\nInput the first letter of the type of metric you'd like to create:")
-    response = input(prompt).lower()
-
-    parsed_metric_type = MetricType(supported_types.get(response, "metric"))
+    response = input(prompt).strip().lower()
+    metric_type_str = supported_types.get(response, metric)
+    parsed_metric_type = MetricType(metric_type_str)
 
     if parsed_metric_type == MetricType.Ranged:
         print(
-            f"\nInput ideal range for new ranged metric {metric_name}, format is 'lower_bound upper_bound':"
+            f"\nInput ideal range for new ranged metric '{metric_name}'. Format: 'lower_bound upper_bound'"
         )
-        lower, upper = input(prompt).split(" ")
+        try:
+            lower_str, upper_str = input(prompt).split()
+            lower, upper = float(lower_str), float(upper_str)
+        except ValueError:
+            print(
+                "Invalid input. Please provide two numeric values separated by a space."
+            )
+            return None
         metric = RangedMetric(
-            metric_name=metric_name,
-            range_minimum=float(lower),
-            range_maximum=float(upper),
+            metric_name=metric_name, range_minimum=lower, range_maximum=upper
         )
 
     elif parsed_metric_type == MetricType.GreaterThan:
         print(
-            f"\nInput ideal min value for new GreaterThan metric '{metric_name}', format is 'lower_bound':"
+            f"\nInput ideal minimum value for new GreaterThan metric '{metric_name}':"
         )
-        lower = float(input(prompt))
+        try:
+            lower = float(input(prompt).strip())
+        except ValueError:
+            print("Invalid input. Please provide a numeric value.")
+            return None
         metric = GreaterThanMetric(metric_name=metric_name, minimum_value=lower)
 
     elif parsed_metric_type == MetricType.LessThan:
-        print(
-            f"\nInput ideal max value for new LessThan metric '{metric_name}', format is  'upper_bound':"
-        )
-        upper = float(input(prompt))
+        print(f"\nInput ideal maximum value for new LessThan metric '{metric_name}':")
+        try:
+            upper = float(input(prompt).strip())
+        except ValueError:
+            print("Invalid input. Please provide a numeric value.")
+            return None
         metric = LessThanMetric(metric_name=metric_name, maximum_value=upper)
 
     elif parsed_metric_type == MetricType.Boolean:
         print(
-            f"\nInput ideal value for new Boolean metric '{metric_name}',  format is  'boolean':"
+            f"\nInput ideal boolean value for new Boolean metric '{metric_name}' (True/False):"
         )
-        boolean = str(input(prompt)).lower() == "true"
-        metric = BooleanMetric(metric_name=metric_name, ideal_boolean_value=boolean)
+        bool_input = input(prompt).strip().lower()
+        if bool_input not in {"true", "false"}:
+            print("Invalid input. Please enter 'True' or 'False'.")
+            return None
+        metric = BooleanMetric(
+            metric_name=metric_name, ideal_boolean_value=(bool_input == "true")
+        )
 
     elif parsed_metric_type == MetricType.Metric:
-        print(f"\nCreating new generic metric '{metric_name}' (metric):")
+        print(f"\nCreating new generic metric '{metric_name}':")
         metric = HealthMetric(metric_name=metric_name)
+
+    else:
+        print(f"Metric type '{parsed_metric_type}' is not supported.")
+        return None
 
     print(
         f"\n === New metric file '{metric_name}' generated (reporting {len(get_filenames_without_extension(FILE_DIR_NAME)) + 1} metric files) === \n"
