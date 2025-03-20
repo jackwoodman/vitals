@@ -17,7 +17,7 @@ class LogEntry:
     """
 
     def __init__(self, log_type_str: str, log_string: str):
-        self.type: LogType = LogType(log_type_str)
+        self.type: LogType = LogType(log_type_str.upper())
         self.value: str = log_string
         self.time: datetime = datetime.now()
 
@@ -57,7 +57,7 @@ class LogCollector:
             log_event = LogEntry(log_type_str=log_level.upper(), log_string=log)
 
             if cli_out:
-                print(f"{(log_level.upper()) - {log}}")
+                print(f"{log_level.upper()} - {log}")
         else:
             log_event = LogEntry(log_type_str="unknown", log_string=log)
 

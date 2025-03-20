@@ -1,11 +1,13 @@
 from classes import HealthMetric
 from metric_file_tools import get_all_metric_files
+import time
 
 
 def find_oor():
     """
     Show all metrics which are defined as "Out of Range".
     """
+    start_time = time.time()
     metrics = find_all_oor_metrics()
     num_metrics = len(metrics)
 
@@ -17,6 +19,7 @@ def find_oor():
         print(
             f" ({i+1}): {metric.metric_name} -> {oor_measurement_count} measurement{plural}: {oor_values}. Should be '{metric.metric_guide()}'"
         )
+    print(f"(time taken: {time.time() - start_time:.2f})")
 
 
 def find_all_oor_metrics() -> list[HealthMetric]:

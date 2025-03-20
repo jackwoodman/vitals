@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional, Union
-from plotting import add_single_line, initialize_plot, add_lines
+from plotting import add_single_line, initialise_plot, add_lines
 
 
 class InequalityValue:
@@ -85,8 +85,11 @@ class HealthMetric:
         self.entries.append(new_entry)
 
     def generate_plot(self):
-        single_plot = initialize_plot()
+        single_plot = initialise_plot()
         return add_single_line(single_plot, self)
+
+    def add_to_existing_plot(self, plot):
+        return add_single_line(plot, self)
 
     def get_all_OoR_values(self) -> list[Measurement]:
         OoR_values = [
@@ -133,7 +136,7 @@ class GreaterThanMetric(HealthMetric):
         return self.bound
 
     def value_is_out_of_range(self, value: Measurement) -> bool:
-        return value.value <= self.bound
+        return value.value < self.bound
 
 
 class LessThanMetric(HealthMetric):
@@ -145,7 +148,7 @@ class LessThanMetric(HealthMetric):
         return self.bound
 
     def value_is_out_of_range(self, value: Measurement) -> bool:
-        return value.value >= self.bound
+        return value.value > self.bound
 
 
 class BooleanMetric(HealthMetric):

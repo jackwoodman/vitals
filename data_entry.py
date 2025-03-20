@@ -1,5 +1,11 @@
 from typing import Optional
-from classes import AllowedMetricValueTypes, HealthMetric, InequalityMeasurement, InequalityValue, Measurement
+from classes import (
+    AllowedMetricValueTypes,
+    HealthMetric,
+    InequalityMeasurement,
+    InequalityValue,
+    Measurement,
+)
 from datetime import datetime
 from sequence_matcher import get_closest_matches
 from metric_file_tools import (
@@ -30,7 +36,9 @@ rules:
 """
 
 
-def generate_new_metric(metric_name: str, unit: Optional[str] = None) -> HealthMetric:
+def generate_new_metric(
+    metric_name: str, unit: Optional[str] = None, log_creation: bool = False
+) -> HealthMetric:
     """
     Given a metric name, parse from the user the required information to generate
     a new metric. Use this to generate a new metric file.
@@ -39,21 +47,27 @@ def generate_new_metric(metric_name: str, unit: Optional[str] = None) -> HealthM
     new_health_metric = parse_health_metric(metric_name=metric_name, unit=unit)
     generate_metric_file(health_metric=new_health_metric)
 
+    if log_creation:
+        logger.add("action", f"Created new health metric '{metric_name}'")
+
     return new_health_metric
 
 
-def add_to_metric(metric_name: str, value: AllowedMetricValueTypes, date: datetime, unit: Optional[str] = None):
-
+def add_to_metric(
+    metric_name: str,
+    value: AllowedMetricValueTypes,
+    date: datetime,
+    unit: Optional[str] = None,
+):
     if isinstance(value, InequalityValue):
-        measurement = InequalityMeasurement(bound=value.value, inequality=value.inequality_type, date=date, unit=unit)
+        measurement = InequalityMeasurement(
+            bound=value.value, inequality=value.inequality_type, date=date, unit=unit
+        )
     else:
-        measurement=Measurement(value=value, date=date, unit=unit)
+        measurement = Measurement(value=value, date=date, unit=unit)
 
     # Create new metric entry.
-    add_measurement_to_metric_file(
-        metric_name=metric_name, measurement=measurement
-    )
-
+    add_measurement_to_metric_file(metric_name=metric_name, measurement=measurement)
 
 
 class InputHandler:
@@ -138,7 +152,7 @@ class InputHandler:
         else:
             # If value is boolean, try to parse.
             if value_str.lower() in ["true", "false"]:
-                value = (value_str.lower() == "true")
+                value = value_str.lower() == "true"
             elif is_inequality_value_str(input_str=value_str):
                 # Is an inequality.
                 value = InequalityValue(value_str)

@@ -1,12 +1,7 @@
+import sys
 from analysis_tools import find_oor
-from classes import InequalityMeasurement
-from mgmt_functions import rename, search, show
-from metric_file_tools import (
-    FILE_DIR_NAME,
-    create_metric_dir,
-    load_metric_from_json,
-    read_metric_file_to_json,
-)
+from mgmt_functions import rename, search, show, instantiate, update_units
+from metric_file_tools import FILE_DIR_NAME, create_metric_dir
 from cli_displays import prompt_user, welcome
 from data_entry import (
     AssistedEntryHandler,
@@ -159,6 +154,8 @@ def manage(_: list):
         "rename": rename,
         "show": show,
         "search": search,
+        "instantiate": instantiate,
+        "update_units": update_units,
     }
 
     print("Entering management terminal.")
@@ -189,11 +186,17 @@ def exit(_: list):
 def graph(arguments: list):
     # Initial testing, get single metric to graph.
     # Read requested file.
-    health_metric = attempt_ingest_from_name(arguments, "graph")
+    health_metrics = attempt_ingest_from_name(arguments, "graph")
 
-    if health_metric:
-        plot = health_metric.generate_plot()
-        plot.show()
+    if health_metrics:
+        if not isinstance(health_metrics, list):
+            current_plot = health_metrics.generate_plot()
+        else:
+            current_plot = health_metrics[0].generate_plot()
+            for health_metric in health_metrics[1:]:
+                current_plot = health_metric.add_to_existing_plot(current_plot)
+
+        current_plot.show()
 
 
 if __name__ == "__main__":
@@ -201,5 +204,12 @@ if __name__ == "__main__":
     # If no directory exists, generate one.
     create_metric_dir()
 
-    # Start high level loop.
-    high_level_loop()
+    # Start high level loop
+    try:
+        high_level_loop()
+    except KeyboardInterrupt:
+        # Do some cleanup before allowing program to close.
+        print()
+        logger.add("WARNING", "HLL terminated due to interrupt signal.", cli_out=True)
+        logger.dump_to_file()
+        sys.exit()

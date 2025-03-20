@@ -1,8 +1,9 @@
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import plotly.io as pio
 
 
-def initialize_plot():
+def initialise_plot():
     """Initializes an empty plotly figure with a base layout."""
     fig = go.Figure(
         layout={
@@ -10,6 +11,8 @@ def initialize_plot():
             "yaxis": {"title": "Y-axis1", "side": "left"},
         }
     )
+
+    fig.layout.template = pio.templates["plotly_dark"]
     return fig
 
 

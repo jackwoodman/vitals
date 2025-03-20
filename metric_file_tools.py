@@ -79,6 +79,33 @@ def read_metric_file_to_json(metric_name: str) -> dict:
         return None
 
 
+def write_json_to_metric_file(metric_name: str, json_dict: dict) -> bool:
+    """
+    Given the name of a health metric file, and a JSON dict, write
+    JSON dict to file.
+
+    Arguments:
+        metric_name: Name of metric file, without the .json.
+        json: The JSON dict.
+
+    Returns:
+        Bool indicating write success.
+    """
+    filepath = Path(
+        f"{FILE_DIR_NAME}/{metric_name}.json"
+        if ".json" not in metric_name
+        else metric_name
+    )
+
+    try:
+        filepath.write_text(json.dumps(json_dict, indent=4))
+    except IOError as e:
+        logger.add("ERROR", f"Failed to write metric file: {e}")
+        return False
+
+    return True
+
+
 def load_metric_from_json(health_data: dict) -> Optional[HealthMetric]:
     """
     Given the JSON object from reading a health file, produce a HealthMetric
@@ -297,6 +324,49 @@ def add_measurement_to_metric_file(metric_name: str, measurement: Measurement) -
 
     logger.add("action", f"Added new measurement to '{file_path.name}'.")
     return True
+
+
+def update_measurement_units(
+    metric_name: str, new_unit: str, update_file_level_unit: bool = False
+) -> int:
+    """
+    Update all measurements in a given metric file with a new unit value.
+
+    Arguments:
+        metric_name: Name of the metric file to be modified.
+        new_unit: New unit string to be applied.
+        update_file_level_unit: If true, also update the metric file level unit.
+
+    Returns:
+        Number of measurements that were modified.
+    """
+    modified_units = 0
+    file_json = read_metric_file_to_json(metric_name)
+
+    if file_json:
+        for measurement in file_json.get("data"):
+            measurement["unit"] = new_unit
+            modified_units += 1
+
+        # Update file level value if needed.
+        if update_file_level_unit:
+            file_json["unit"] = new_unit
+            logger.add(
+                "action", f"'{metric_name}' unit changed to '{new_unit}'.", cli_out=True
+            )
+
+        # Save the modified JSON back to the file
+        write_json_to_metric_file(metric_name=metric_name, json_dict=file_json)
+        logger.add(
+            "action",
+            f"Updated {modified_units} measurements from {metric_name} with unit '{new_unit}'.",
+            cli_out=True,
+        )
+
+    else:
+        logger.add("WARNING", "Can't mass update file.")
+
+    return modified_units
 
 
 def rename_health_file(current_metric_name: str, new_metric_name: str):

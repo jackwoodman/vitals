@@ -3,6 +3,8 @@
 [ ] - Sort/cleanup metric file tool.
 [X] - Read metric files to objects.
 [X] - Add "backing out" functionality, signify you want correctness checked for mode 1.
-[ ] - Ability to create empty metric files, so you can make multiple quickly and enter in mode 3 after.
-[ ] - Mass update metric unit tool.
-[ ] - OoR search - find examples where metric entry is out of range.
+[X] - Ability to create empty metric files, so you can make multiple quickly and enter in mode 3 after.
+[X] - Mass update metric unit tool.
+[X] - OoR search - find examples where metric entry is out of range.
+[ ] - Spellcheck for function calls in HLL.
+[ ] - Graph multiple metrics together.
