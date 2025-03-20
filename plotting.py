@@ -2,6 +2,14 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.io as pio
 
+default_template = pio.templates["plotly_dark"]
+
+
+def empty_figure():
+    figure = go.Figure()
+    figure.layout.template = default_template
+    return figure
+
 
 def initialise_plot():
     """Initializes an empty plotly figure with a base layout."""
@@ -12,7 +20,7 @@ def initialise_plot():
         }
     )
 
-    fig.layout.template = pio.templates["plotly_dark"]
+    fig.layout.template = default_template
     return fig
 
 
@@ -222,5 +230,152 @@ def add_single_line(fig, metric_object):
                 yaxis=y_axis_ref,
             )
         )
+
+    return fig
+
+
+def add_multiple_lines(fig, metric_objects):
+    """
+    Adds lines and shading for multiple metric objects. Objects with the same .unit attribute
+    are plotted on the same y-axis; objects with different units get separate y-axes positioned
+    on the left side of the graph, with each new axis further left.
+
+    This implementation shifts the x-axis domain to [0.2, 1] and reduces the left margin so that
+    the y-axes are closer to the plot area.
+
+    Args:
+        fig: The Plotly figure to update.
+        metric_objects: List of objects to plot, where each object has:
+            - entries: List of data points with attributes .date and .value.
+            - metric_name: The name of the metric (used for the legend).
+            - metric_type: An object with attribute .value ("ranged", "greater_than", or "less_than").
+            - range_minimum, range_maximum: For "ranged" objects, the bounds of the shaded region.
+            - bound: For "greater_than" or "less_than" objects, the value at which to draw the line.
+            - unit: A string representing the measurement unit (used for grouping traces on the same axis).
+    """
+    # Reserve a smaller left space for the axes.
+    fig.update_layout(xaxis=dict(domain=[0.2, 1]), margin=dict(l=80))
+
+    # Get the unique units in the order they appear.
+    unique_units = []
+    for obj in metric_objects:
+        if obj.unit not in unique_units:
+            unique_units.append(obj.unit)
+    n = len(unique_units)
+
+    # Define positions for y-axes in the reserved left margin.
+    # The rightmost axis (closest to the plot) is at x=0.2.
+    # Each additional axis is shifted further left by an offset.
+    rightmost_pos = 0.2
+    offset = 0.05
+    unit_positions = {}
+    for i, unit in enumerate(unique_units):
+        pos = rightmost_pos - i * offset
+        if pos < 0:
+            pos = 0  # Ensure the position stays within [0,1]
+        unit_positions[unit] = pos
+
+    # Map each unit to an axis index.
+    unit_to_axis = {}
+    axis_index = 1
+
+    # Configure y-axes on the left.
+    for unit in unique_units:
+        pos = unit_positions[unit]
+        if axis_index == 1:
+            # Primary y-axis uses the default "y"
+            fig.update_layout(
+                yaxis=dict(
+                    title=f"Y-axis ({unit})", side="left", position=pos, anchor="free"
+                )
+            )
+        else:
+            axis_name = f"yaxis{axis_index}"
+            fig.update_layout(
+                {
+                    axis_name: {
+                        "title": f"Y-axis ({unit})",
+                        "side": "left",
+                        "overlaying": "y",
+                        "position": pos,
+                        "anchor": "free",
+                    }
+                }
+            )
+        unit_to_axis[unit] = axis_index
+        axis_index += 1
+
+    # Add traces for each metric object using the corresponding y-axis.
+    for obj in metric_objects:
+        current_axis_index = unit_to_axis[obj.unit]
+        yaxis_ref = "y" if current_axis_index == 1 else f"y{current_axis_index}"
+
+        # Extract x and y data.
+        x_vals = [p.date for p in obj.entries]
+        y_vals = [p.value for p in obj.entries]
+
+        # Main line trace.
+        fig.add_trace(
+            go.Scatter(
+                x=x_vals,
+                y=y_vals,
+                mode="lines+markers",
+                name=obj.metric_name,
+                yaxis=yaxis_ref,
+            )
+        )
+
+        # Additional traces based on metric type.
+        if obj.metric_type.value == "ranged":
+            a, b = obj.range_minimum, obj.range_maximum
+            # Lower bound trace.
+            fig.add_trace(
+                go.Scatter(
+                    x=x_vals,
+                    y=[a] * len(x_vals),
+                    mode="lines",
+                    fill=None,
+                    line=dict(color="rgba(255,0,0,0.8)", dash="dash"),
+                    name=f"{obj.metric_name} Lower Bound",
+                    yaxis=yaxis_ref,
+                )
+            )
+            # Upper bound trace.
+            fig.add_trace(
+                go.Scatter(
+                    x=x_vals,
+                    y=[b] * len(x_vals),
+                    mode="lines",
+                    fill=None,
+                    line=dict(color="rgba(255,0,0,0.8)", dash="dash"),
+                    name=f"{obj.metric_name} Upper Bound",
+                    yaxis=yaxis_ref,
+                )
+            )
+        elif obj.metric_type.value == "greater_than":
+            # Minimum bound trace.
+            fig.add_trace(
+                go.Scatter(
+                    x=x_vals,
+                    y=[obj.bound] * len(x_vals),
+                    mode="lines",
+                    fill=None,
+                    line=dict(color="rgba(255,0,0,0.5)", dash="dash"),
+                    name=f"{obj.metric_name} Minimum",
+                    yaxis=yaxis_ref,
+                )
+            )
+        elif obj.metric_type.value == "less_than":
+            # Maximum bound trace.
+            fig.add_trace(
+                go.Scatter(
+                    x=x_vals,
+                    y=[obj.bound] * len(x_vals),
+                    mode="lines",
+                    line=dict(color="rgba(255,0,0,0.3)", dash="dash"),
+                    name=f"{obj.metric_name} Maximum",
+                    yaxis=yaxis_ref,
+                )
+            )
 
     return fig

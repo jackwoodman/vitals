@@ -5,7 +5,7 @@ from logger import logger
 from data_entry import generate_new_metric
 
 
-def rename():
+def rename(_: list):
     """
     Helper function to rename name of metric, both file and contents.
     """
@@ -20,7 +20,7 @@ def rename():
     logger.add("action", f"Renamed metric '{old_metric_name}' to '{new_metric_name}'")
 
 
-def show():
+def show(_: list):
     """
     Show all files in the metric_files directory.
     """
@@ -33,7 +33,7 @@ def show():
     print(f"\nFound {count} files.")
 
 
-def search():
+def search(_: list):
     """
     Show all files in the metric_files directory matching a given string.
     """
@@ -51,7 +51,7 @@ def search():
     print(f"\nSearched {count} files, found {found} matches.\n")
 
 
-def update_units():
+def update_units(_: list):
     """
     Quickly update all the units for a given metric, includnig the default value if
     required.
@@ -61,10 +61,9 @@ def update_units():
 
     while True:
         new_input = prompt_user(["main", "manage", "update_units"]).split(" ")
-        bool_input = (new_input[2].strip().lower()) == "true"
-
         if new_input[0] == "exit":
             break
+        bool_input = (new_input[2].strip().lower()) == "true"
 
         update_measurement_units(
             metric_name=new_input[0],
@@ -75,7 +74,7 @@ def update_units():
     logger.add("info", "Exiting update_units.")
 
 
-def instantiate():
+def instantiate(_: list):
     """ "
     Quickly instantiate empty helath files for population later. This is useful
     when a new report has multiple new metrics. You create files with this tool

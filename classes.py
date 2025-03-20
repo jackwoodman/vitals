@@ -1,7 +1,8 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional, Union
-from plotting import add_single_line, initialise_plot, add_lines
+from logger import logger
+from plotting import add_single_line, initialise_plot, add_multiple_lines, empty_figure
 
 
 class InequalityValue:
@@ -162,3 +163,52 @@ class BooleanMetric(HealthMetric):
     def value_is_out_of_range(self, value: Measurement) -> bool:
         if type(value) is Measurement:
             return value.value != self.ideal
+
+
+class MetricGroup:
+    def __init__(self, unit: str = None):
+        self.metric_dict = {}
+        self.count = 0
+        self.enforce_units = unit is not None
+        self.unit = unit
+
+    def as_list(self):
+        return [metric for metric in self.metric_dict.values()]
+
+    def graph_group(self):
+        figure = add_multiple_lines(empty_figure(), self.as_list())
+        figure.show()
+
+    def add_metric(self, new_metric: HealthMetric) -> bool:
+        # Check metric can be registered.
+        if new_metric.unit and new_metric.unit != self.unit and self.enforce_units:
+            logger.add(
+                "warning",
+                f"Metric '{new_metric.metric_name}' unit '{new_metric.unit}' does not match MetricGroup unit '{self.unit}'.",
+                cli_out=True,
+            )
+            return False
+
+        self.metric_dict[new_metric.metric_name] = new_metric
+        self.count += 1
+        return True
+
+    def add_metrics(self, new_metrics: list[HealthMetric]) -> list[bool]:
+        """
+        Add a list of metrics.
+        """
+        return [self.add_metric(metric) for metric in new_metrics]
+
+    def remove_metric(self, metric_name: str) -> bool:
+        """
+        Deregister metric.
+        """
+        if metric_name in self.metric_dict.keys():
+            self.metric_dict.pop(metric_name)
+            self.count -= 1
+            return True
+        logger.add("warning", f"No metric named '{metric_name}'.", cli_out=True)
+        return False
+
+    def remove_metrics(self, metric_names: list[str]) -> list[bool]:
+        return [self.remove_metric(metric_name) for metric_name in metric_names]

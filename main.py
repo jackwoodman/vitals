@@ -10,12 +10,14 @@ from data_entry import (
     SpeedyEntryHandler,
 )
 from logger import logger
-from utils import attempt_ingest_from_name
+from read import read_by_name
+from utils import attempt_ingest_from_name, function_mapping_t, generic_hll_function
+from classes import MetricGroup
 
 
 def high_level_loop():
     # Defines mapping of commands to their respective functions.
-    function_mapping: dict[str, callable] = {
+    function_mapping: function_mapping_t = {
         "write": write,
         "read": read,
         "graph": graph,
@@ -24,26 +26,8 @@ def high_level_loop():
         "exit": exit,
     }
 
-    while True:
-        # Parse new user input.
-        requested_function = prompt_user("main")
-
-        # Split function from arguments.
-        if len(func_arg_pair := requested_function.split(" ")) > 1:
-            requested_function = func_arg_pair[0]
-            arguments = func_arg_pair[1:]
-        else:
-            arguments = []
-
-        # Attempt to run requested function.
-        if requested_function in function_mapping.keys():
-            function_mapping[requested_function](arguments)
-        else:
-            logger.add("warning", f"'{requested_function}' is not recognised.")
-
-        # Catch exit call, assuming exit() handled everything.
-        if requested_function == "exit":
-            return
+    generic_hll_function(sub_func_map=function_mapping, hll_name="main")
+    exit(None)
 
 
 def write(_: list):
@@ -66,7 +50,10 @@ def write(_: list):
         if set_handler:
             # Get required entry handler, default to manual mode,
             print("\nSelect handler mode (1, 2, or 3): ")
-            req_handler = int(prompt_user(["main", c_level, "handler_select"]))
+            req_handler = prompt_user(["main", c_level, "handler_select"])
+            if req_handler == "exit":
+                return
+            req_handler = int(req_handler)
             handler_callable: InputHandler = handler_mapping.get(
                 req_handler, ManualEntryHandler
             )
@@ -96,60 +83,25 @@ def write(_: list):
         handler.handle_input(new_input)
 
 
-def read(arguments: list):
-    """
-    Loop to handle reading a metric file to HealthMetric object. WIP.
+def read(_: list):
+    function_mapping: function_mapping_t = {"read_metric": read_by_name}
 
-    Accepted arguments:
-        Position 1: Name of file to read.
-
-    """
-    health_metric = attempt_ingest_from_name(arguments, "read")
-
-    # Check nonzero entries:
-    if len(health_metric.entries) > 0:
-        print(f"(Found {len(health_metric.entries)} entries)")
-        for measurement in health_metric.entries:
-            print(
-                " - ",
-                f"{str(measurement)}{(" "+measurement.unit) if measurement.unit else ""}",
-                " -> ",
-                measurement.date,
-            )
-
-    else:
-        print("File is empty.")
-
-    print("\n")
+    generic_hll_function(
+        sub_func_map=function_mapping, hll_name="read", proper_name="reading"
+    )
 
 
 def analyse(_: list):
-    # Defines mapping of commands to their respective functions.
     function_mapping: dict[str, callable] = {
         "find_oor": find_oor,
     }
 
-    print("Entering analysis terminal.")
-    logger.add("info", "Entered analysis terminal.")
-
-    while True:
-        # Parse new user input.
-        requested_function = input("(analyse) -> ").lower()
-
-        # Catch exit call, assuming exit() handled everything.
-        if requested_function == "exit":
-            logger.add("info", "Exiting analysis terminal.")
-            break
-
-        # Attempt to run requested function.
-        if requested_function in function_mapping.keys():
-            function_mapping[requested_function]()
-        else:
-            logger.add("warning", f"'{requested_function}' is not recognised.")
+    generic_hll_function(
+        sub_func_map=function_mapping, hll_name="analyse", proper_name="analysis"
+    )
 
 
 def manage(_: list):
-    # Defines mapping of commands to their respective functions.
     function_mapping: dict[str, callable] = {
         "rename": rename,
         "show": show,
@@ -158,23 +110,9 @@ def manage(_: list):
         "update_units": update_units,
     }
 
-    print("Entering management terminal.")
-    logger.add("info", "Entered management terminal.")
-
-    while True:
-        # Parse new user input.
-        requested_function = input("(manage) -> ").lower()
-
-        # Catch exit call, assuming exit() handled everything.
-        if requested_function == "exit":
-            logger.add("info", "Exiting management terminal.")
-            break
-
-        # Attempt to run requested function.
-        if requested_function in function_mapping.keys():
-            function_mapping[requested_function]()
-        else:
-            logger.add("warning", f"'{requested_function}' is not recognised.")
+    generic_hll_function(
+        sub_func_map=function_mapping, hll_name="manage", proper_name="management"
+    )
 
 
 def exit(_: list):
@@ -184,7 +122,6 @@ def exit(_: list):
 
 
 def graph(arguments: list):
-    # Initial testing, get single metric to graph.
     # Read requested file.
     health_metrics = attempt_ingest_from_name(arguments, "graph")
 
@@ -192,11 +129,14 @@ def graph(arguments: list):
         if not isinstance(health_metrics, list):
             current_plot = health_metrics.generate_plot()
         else:
-            current_plot = health_metrics[0].generate_plot()
-            for health_metric in health_metrics[1:]:
-                current_plot = health_metric.add_to_existing_plot(current_plot)
+            group = MetricGroup()
+            group.add_metrics(health_metrics)
+            group.graph_group()
+            # current_plot = health_metrics[0].generate_plot()
+            # for health_metric in health_metrics[1:]:
+            #     current_plot = health_metric.add_to_existing_plot(current_plot)
 
-        current_plot.show()
+        # current_plot.show()
 
 
 if __name__ == "__main__":

@@ -10,6 +10,63 @@ from metric_file_tools import (
 )
 from sequence_matcher import get_closest_match
 
+function_mapping_t = dict[str, callable]
+
+
+def generic_hll_function(
+    sub_func_map: function_mapping_t, hll_name: str, proper_name: str = None
+):
+    """
+    Provides a generic HLL function interface. Some HLL functions have complex requirements,
+    such as write() or read(). Others, such as manage() and analyse() are simple functions, identical
+    except for their subfunctions, and their name. This function is an attempt to template out that
+    identical functionality to reduce code reuse. It should suit most generic HLL functions, until their
+    complexity grows, at which point this can be replaced with a bespoke handler function.
+
+    Args:
+        sub_fun_map: A mapping of subfunction names to function callables.
+        hll_name: The name of the function implementing this function.
+        proper_name: The name of the terminal.
+
+    """
+    terminal_name = proper_name or hll_name
+    available_functions = sub_func_map.keys()
+    logger.add("info", f"Entered {terminal_name} terminal.", cli_out=True)
+
+    while True:
+        # Parse new user input.
+        requested_function = prompt_user(hll_name).lower()
+
+        # Split function from arguments.
+        if len(func_arg_pair := requested_function.split(" ")) > 1:
+            requested_function = func_arg_pair[0]
+            arguments = func_arg_pair[1:]
+        else:
+            arguments = []
+
+        # Catch exit call, assuming exit() handled everything.
+        if requested_function == "exit":
+            logger.add("info", f"Exiting {terminal_name} terminal.", cli_out=True)
+            break
+        # Catch request for help.
+        elif requested_function == "help":
+            print(f"Functions supported by '{hll_name}':")
+            for function_name in available_functions:
+                print(f" - {function_name}")
+            print()
+            continue
+
+        # Attempt to find function name if not correct.
+        if requested_function not in available_functions:
+            closest_match = get_closest_match(requested_function, available_functions)
+            logger.add(
+                "warning",
+                f"'{requested_function}' was not recognised. '{closest_match}' was closest match.",
+            )
+            requested_function = closest_match
+
+        sub_func_map[requested_function](arguments)
+
 
 def is_verbatim(input_text: str) -> Optional[str]:
     """
@@ -44,7 +101,6 @@ def attempt_ingest_from_name(
     metric_input: Optional[Union[str, list]] = None,
     prompt_verb: str = "load",
     verbose: bool = False,
-    match_close_names: bool = False,
 ) -> Optional[Union[list[HealthMetric], HealthMetric]]:
     """
     Helper function, that will attempt to ingest a health metric from file and return as a HealthMetric object.

@@ -3,7 +3,7 @@ from metric_file_tools import get_all_metric_files
 import time
 
 
-def find_oor():
+def find_oor(_):
     """
     Show all metrics which are defined as "Out of Range".
     """

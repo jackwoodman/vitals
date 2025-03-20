@@ -170,7 +170,9 @@ def load_metric_from_json(health_data: dict) -> Optional[HealthMetric]:
             return None
 
         # Process individual data entries.
-        default_unit = health_data.get("unit")
+        default_unit = health_data.get("unit", None)
+        metric.assign_unit(unit=default_unit)
+
         for entry_number, data_point in enumerate(data_values):
             # Date should be included with each entry.
             date = data_point["date"]

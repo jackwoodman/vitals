@@ -37,7 +37,7 @@ class LogCollector:
 
     def __init__(self, display_logs: bool = False):
         self.init_time = datetime.now()
-        self.collection_id = hash(self.init_time)
+        self.collection_id = abs(hash(self.init_time))
         self.collection_name = (
             f"log_{str(self.init_time).split('.')[0].replace(' ', '_')}"
         )

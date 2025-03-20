@@ -16,7 +16,7 @@ def cli_warn(warning_text: str) -> str:
 
 
 def welcome():
-    version = 0.5
+    version = 0.6
     print(buffer_sides(f" vitals {version} ", 5))
 
 
