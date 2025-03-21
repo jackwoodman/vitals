@@ -1,18 +1,18 @@
 import sys
-from analysis_tools import find_oor
-from mgmt_functions import rename, search, show, instantiate, update_units
-from metric_file_tools import FILE_DIR_NAME, create_metric_dir
-from cli_displays import prompt_user, welcome
-from data_entry import (
+from data.analysis_tools import find_oor
+from functions.mgmt_functions import rename, search, show, instantiate, update_units
+from file_tools.metric_file_tools import FILE_DIR_NAME, create_metric_dir
+from utils.cli_displays import prompt_user, welcome
+from data.data_entry import (
     AssistedEntryHandler,
     InputHandler,
     ManualEntryHandler,
     SpeedyEntryHandler,
 )
-from logger import logger
-from read import read_by_name
-from utils import attempt_ingest_from_name, function_mapping_t, generic_hll_function
-from classes import MetricGroup
+from utils.logger import logger
+from utils.plotting import plot_metrics
+from high_level_functions.read import read_by_name
+from utils.utils import attempt_ingest_from_name, function_mapping_t, generic_hll_function
 
 
 def high_level_loop():
@@ -127,20 +127,11 @@ def graph(arguments: list):
 
     if health_metrics:
         if not isinstance(health_metrics, list):
-            # current_plot = health_metrics.generate_plot()
-            group = MetricGroup()
-            group.add_metrics([health_metrics])
-            group.graph_group()
-
+            current_plot = health_metrics.graph_metric()
         else:
-            group = MetricGroup()
-            group.add_metrics(health_metrics)
-            group.graph_group()
-            # current_plot = health_metrics[0].generate_plot()
-            # for health_metric in health_metrics[1:]:
-            #     current_plot = health_metric.add_to_existing_plot(current_plot)
+            current_plot = plot_metrics(health_metrics, show_bounds=True)
 
-        # current_plot.show()
+        current_plot.show()
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from typing import Optional
-from cli_displays import cli_warn
+from utils.cli_displays import cli_warn
 from classes import (
     GreaterThanMetric,
     HealthMetric,
@@ -13,7 +13,7 @@ from classes import (
     RangedMetric,
     BooleanMetric,
 )
-from logger import logger
+from utils.logger import logger
 
 FILE_VERS = 9
 FILE_DIR_NAME = "metric_files"

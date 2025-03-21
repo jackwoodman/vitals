@@ -14,6 +14,27 @@ def empty_figure():
     return figure
 
 
+def plot_bound_line(
+    target_trace: go.Figure,
+    y_value: float,
+    x_values: list[float],
+    metric_name: str,
+    bound_text: str,
+    y_ref: str,
+):
+    target_trace.add_trace(
+        go.Scatter(
+            x=x_values,
+            y=[y_value] * len(x_values),
+            mode="lines",
+            fill=None,
+            line=dict(color=BOUND_LINE_COLOUR, dash=BOUND_DASH_SETTING),
+            name=f"{metric_name} {bound_text}",
+            yaxis=y_ref,
+        )
+    )
+
+
 def plot_metrics(
     metric_objects: Union[list, object],
     starting_figure: go.Figure = None,
@@ -110,57 +131,25 @@ def plot_metrics(
 
         # Additional code to show bounding lines.
         if show_bounds:
+            metric_type = metric.metric_type.value
             # Additional traces based on metric type.
-            if metric.metric_type.value == "ranged":
-                a, b = metric.range_minimum, metric.range_maximum
-                # Lower bound trace.
-                fig.add_trace(
-                    go.Scatter(
-                        x=x_vals,
-                        y=[a] * len(x_vals),
-                        mode="lines",
-                        fill=None,
-                        line=dict(color=BOUND_LINE_COLOUR, dash=BOUND_DASH_SETTING),
-                        name=f"{metric.metric_name} Lower Bound",
-                        yaxis=yaxis_ref,
-                    )
+            if metric_type == "ranged":
+                # Two bounds.
+                min_val, max_val = metric.range_minimum, metric.range_maximum
+                plot_bound_line(
+                    fig, min_val, x_vals, metric.metric_name, "Lower Bound", yaxis_ref
                 )
-                # Upper bound trace.
-                fig.add_trace(
-                    go.Scatter(
-                        x=x_vals,
-                        y=[b] * len(x_vals),
-                        mode="lines",
-                        fill=None,
-                        line=dict(color=BOUND_LINE_COLOUR, dash=BOUND_DASH_SETTING),
-                        name=f"{metric.metric_name} Upper Bound",
-                        yaxis=yaxis_ref,
-                    )
+                plot_bound_line(
+                    fig, max_val, x_vals, metric.metric_name, "Upper Bound", yaxis_ref
                 )
-            elif metric.metric_type.value == "greater_than":
-                # Minimum bound trace.
-                fig.add_trace(
-                    go.Scatter(
-                        x=x_vals,
-                        y=[metric.bound] * len(x_vals),
-                        mode="lines",
-                        fill=None,
-                        line=dict(color=BOUND_LINE_COLOUR, dash=BOUND_DASH_SETTING),
-                        name=f"{metric.metric_name} Minimum",
-                        yaxis=yaxis_ref,
-                    )
+
+            else:
+                # Single bound.
+                b_text = {"less_than": "Maximum", "more_than": "Minimum"}.get(
+                    metric_type, ""
                 )
-            elif metric.metric_type.value == "less_than":
-                # Maximum bound trace.
-                fig.add_trace(
-                    go.Scatter(
-                        x=x_vals,
-                        y=[metric.bound] * len(x_vals),
-                        mode="lines",
-                        line=dict(color=BOUND_LINE_COLOUR, dash=BOUND_DASH_SETTING),
-                        name=f"{metric.metric_name} Maximum",
-                        yaxis=yaxis_ref,
-                    )
+                plot_bound_line(
+                    fig, metric.bound, x_vals, metric.metric_name, b_text, yaxis_ref
                 )
 
     return fig

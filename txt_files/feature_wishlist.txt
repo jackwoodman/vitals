@@ -7,6 +7,7 @@
 [X] - Mass update metric unit tool.
 [X] - OoR search - find examples where metric entry is out of range.
 [X] - Spellcheck for function calls in HLL.
-[ ] - Graph multiple metrics together.
+[X] - Graph multiple metrics together.
 [ ] - Collect group of metrics.
 [ ] - Standardised templates for graphs.
+[ ] - Organise everything.

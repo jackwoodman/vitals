@@ -1,8 +1,8 @@
 from pathlib import Path
-from cli_displays import prompt_user
-from metric_file_tools import rename_health_file, update_measurement_units
-from logger import logger
-from data_entry import generate_new_metric
+from utils.cli_displays import prompt_user
+from file_tools.metric_file_tools import rename_health_file, update_measurement_units
+from utils.logger import logger
+from data.data_entry import generate_new_metric
 
 
 def rename(_: list):

@@ -1,8 +1,8 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional, Union
-from logger import logger
-from plotting import add_single_line, initialise_plot, empty_figure, plot_metrics
+from utils.logger import logger
+from utils.plotting import plot_metrics
 
 
 class InequalityValue:
@@ -85,7 +85,7 @@ class HealthMetric:
     def add_entry(self, new_entry: Measurement):
         self.entries.append(new_entry)
 
-    def generate_plot(self):
+    def graph_metric(self):
         return plot_metrics(self)
 
     def add_to_existing_plot(self, plot):
@@ -165,11 +165,15 @@ class BooleanMetric(HealthMetric):
 
 
 class MetricGroup:
-    def __init__(self, unit: str = None):
+    def __init__(self, unit: str = None, initial_metrics: list[HealthMetric] = None):
         self.metric_dict = {}
         self.count = 0
         self.enforce_units = unit is not None
         self.unit = unit
+
+        # Case where group is instantiated with metrics.
+        if initial_metrics:
+            self.add_metrics(new_metrics=initial_metrics)
 
     def as_list(self):
         return [metric for metric in self.metric_dict.values()]

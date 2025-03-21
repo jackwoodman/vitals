@@ -1,14 +1,14 @@
 from typing import Optional, Union
-from logger import LogEntry, logger
+from utils.logger import LogEntry, logger
 from classes import HealthMetric
-from cli_displays import prompt_user
-from metric_file_tools import (
+from utils.cli_displays import prompt_user
+from file_tools.metric_file_tools import (
     FILE_DIR_NAME,
     get_filenames_without_extension,
     load_metric_from_json,
     read_metric_file_to_json,
 )
-from sequence_matcher import get_closest_match
+from utils.sequence_matcher import get_closest_match
 
 function_mapping_t = dict[str, callable]
 

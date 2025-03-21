@@ -7,16 +7,16 @@ from classes import (
     Measurement,
 )
 from datetime import datetime
-from sequence_matcher import get_closest_matches
-from metric_file_tools import (
+from utils.sequence_matcher import get_closest_matches
+from file_tools.metric_file_tools import (
     add_measurement_to_metric_file,
     generate_metric_file,
     get_filenames_without_extension,
     is_inequality_value_str,
     parse_health_metric,
 )
-from utils import is_verbatim
-from logger import logger
+from utils.utils import is_verbatim
+from utils.logger import logger
 
 Entry_T = Optional[str]
 data_entry_strptime_format = "%d%m%Y"
