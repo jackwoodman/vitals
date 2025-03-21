@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Optional, Union
 from utils.logger import logger
 from utils.plotting import plot_metrics
+from utils.utils import attempt_ingest_from_name
 
 
 class InequalityValue:
@@ -89,7 +90,7 @@ class HealthMetric:
         return plot_metrics(self)
 
     def add_to_existing_plot(self, plot):
-        return add_single_line(plot, self)
+        return plot_metrics(plot, self)
 
     def get_all_OoR_values(self) -> list[Measurement]:
         OoR_values = [
@@ -112,6 +113,9 @@ class HealthMetric:
     def value_is_out_of_range(self, value: Measurement) -> bool:
         """Must be implemented."""
         pass
+
+    def refresh_metric(self):
+        return attempt_ingest_from_name(metric_input=self.metric_name)
 
 
 class RangedMetric(HealthMetric):
@@ -215,3 +219,33 @@ class MetricGroup:
 
     def remove_metrics(self, metric_names: list[str]) -> list[bool]:
         return [self.remove_metric(metric_name) for metric_name in metric_names]
+
+
+class GroupManager:
+    def __init__(self):
+        self.group_record: dict[str, MetricGroup] = {}
+        self.group_sizes: dict[str, int] = {}
+        self.record_count = 0
+
+    def register_group(self, group_name: str, group: MetricGroup):
+        self.group_record[group_name] = group
+        self.group_sizes[group_name] = group.count
+        self.record_count
+
+    def get_groups(self) -> list[MetricGroup]:
+        return self.group_record
+
+    def get_group(self, group_name: str) -> MetricGroup:
+        return self.group_record.get(group_name)
+
+    def remove_group(self, group_name: str):
+        self.group_record.pop(group_name)
+        self.group_sizes.pop(group_name)
+        self.record_count -= 1
+
+    def remove_groups(self, group_names: list[str]):
+        for name in group_names:
+            self.remove_group(name)
+
+    def get_group_names(self) -> list[str]:
+        return [name for name in self.group_record.keys()]

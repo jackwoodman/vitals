@@ -1,11 +1,11 @@
 from typing import Optional, Union
+from file_tools.metric_file_parsing import load_metric_from_json
 from utils.logger import LogEntry, logger
 from classes import HealthMetric
 from utils.cli_displays import prompt_user
 from file_tools.metric_file_tools import (
     FILE_DIR_NAME,
     get_filenames_without_extension,
-    load_metric_from_json,
     read_metric_file_to_json,
 )
 from utils.sequence_matcher import get_closest_match
@@ -94,6 +94,37 @@ def is_verbatim(input_text: str) -> Optional[str]:
     # Any other checks go here.
 
     # Not verbatim
+    return None
+
+
+def source_metric(metric_input: str):
+    """
+    Helper function, that will attempt to ingest a health metric from file and return as a HealthMetric object.
+    If no name is provided, it will prompt the user, using the prompt_verb if provided.
+    If unable to load, will return None.
+    """
+    metric_objects = []
+
+    # Build health metric object from requested file.
+    health_file = read_metric_file_to_json(metric_input)
+
+    # Name not found.
+    if not health_file:
+        # Look for group.
+        ####
+
+    # if not health_file
+
+    # Build metric object and return.
+    if health_file and not isinstance(health_file, LogEntry):
+        ingested_metric = load_metric_from_json(health_file)
+        if verbose and ingested_metric:
+            print(f"Ingested and built '{ingested_metric.metric_name}'.")
+        metric_objects.append(ingested_metric)
+
+    # Return list only if greater than one, for backwards compat reasons.
+    if metric_objects:
+        return metric_objects if len(metric_objects) > 1 else metric_objects[0]
     return None
 
 

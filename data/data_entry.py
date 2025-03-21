@@ -7,13 +7,13 @@ from classes import (
     Measurement,
 )
 from datetime import datetime
+from file_tools.metric_file_parsing import parse_health_metric
 from utils.sequence_matcher import get_closest_matches
 from file_tools.metric_file_tools import (
     add_measurement_to_metric_file,
     generate_metric_file,
     get_filenames_without_extension,
     is_inequality_value_str,
-    parse_health_metric,
 )
 from utils.utils import is_verbatim
 from utils.logger import logger

@@ -1,11 +1,21 @@
 import sys
 from file_tools.metric_file_tools import create_metric_dir
-from high_level_functions.entry_points import analyse, graph, manage, read, write
-
+from high_level_functions.entry_points import (
+    analyse,
+    graph,
+    manage,
+    memorise,
+    read,
+    write,
+)
+from high_level_functions.utils import exit
 from utils.cli_displays import welcome
 from utils.logger import logger
 
 from utils.utils import function_mapping_t, generic_hll_function
+
+
+from global_functions import global_function_register
 
 
 def high_level_loop():
@@ -16,8 +26,9 @@ def high_level_loop():
         "graph": graph,
         "manage": manage,
         "analyse": analyse,
+        "memorise": memorise,
         "exit": exit,
-    }
+    } | global_function_register
 
     generic_hll_function(sub_func_map=function_mapping, hll_name="main")
     exit(None)
