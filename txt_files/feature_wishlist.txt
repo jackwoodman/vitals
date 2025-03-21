@@ -6,5 +6,7 @@
 [X] - Ability to create empty metric files, so you can make multiple quickly and enter in mode 3 after.
 [X] - Mass update metric unit tool.
 [X] - OoR search - find examples where metric entry is out of range.
-[ ] - Spellcheck for function calls in HLL.
+[X] - Spellcheck for function calls in HLL.
 [ ] - Graph multiple metrics together.
+[ ] - Collect group of metrics.
+[ ] - Standardised templates for graphs.

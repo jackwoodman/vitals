@@ -131,7 +131,7 @@ def load_metric_from_json(health_data: dict) -> Optional[HealthMetric]:
     # Check for outdated file.
     if file_version < FILE_VERS:
         version_delta = FILE_VERS - file_version
-        fv_warn = f"file `{metric_name}` is outdated by {version_delta}. (File vers: {file_version}, operating vers: {FILE_VERS})\n"
+        fv_warn = f"file `{metric_name}` is outdated by {version_delta}. (File vers: {file_version}, operating vers: {FILE_VERS})"
         cli_warn(fv_warn)
         logger.add("WARNING", fv_warn)
         file_is_outdated = True

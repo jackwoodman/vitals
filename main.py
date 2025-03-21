@@ -127,7 +127,11 @@ def graph(arguments: list):
 
     if health_metrics:
         if not isinstance(health_metrics, list):
-            current_plot = health_metrics.generate_plot()
+            # current_plot = health_metrics.generate_plot()
+            group = MetricGroup()
+            group.add_metrics([health_metrics])
+            group.graph_group()
+
         else:
             group = MetricGroup()
             group.add_metrics(health_metrics)

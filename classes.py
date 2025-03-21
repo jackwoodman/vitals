@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional, Union
 from logger import logger
-from plotting import add_single_line, initialise_plot, add_multiple_lines, empty_figure
+from plotting import add_single_line, initialise_plot, empty_figure, plot_metrics
 
 
 class InequalityValue:
@@ -86,8 +86,7 @@ class HealthMetric:
         self.entries.append(new_entry)
 
     def generate_plot(self):
-        single_plot = initialise_plot()
-        return add_single_line(single_plot, self)
+        return plot_metrics(self)
 
     def add_to_existing_plot(self, plot):
         return add_single_line(plot, self)
@@ -175,8 +174,8 @@ class MetricGroup:
     def as_list(self):
         return [metric for metric in self.metric_dict.values()]
 
-    def graph_group(self):
-        figure = add_multiple_lines(empty_figure(), self.as_list())
+    def graph_group(self, show_bounds: bool = True):
+        figure = plot_metrics(self.as_list(), show_bounds=show_bounds)
         figure.show()
 
     def add_metric(self, new_metric: HealthMetric) -> bool:
