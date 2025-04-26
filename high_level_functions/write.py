@@ -4,8 +4,8 @@ from data.data_entry import (
     ManualEntryHandler,
     SpeedyEntryHandler,
 )
-from file_tools.metric_file_tools import FILE_DIR_NAME
-from utils import logger
+from file_tools.filepaths import FILE_DIR_NAME
+from utils.logger import logger
 from utils.cli_displays import prompt_user
 
 

@@ -1,6 +1,11 @@
 from classes import GroupManager, MetricGroup
+from file_tools.metric_file_parsing import (
+    load_group_manager_from_json,
+    read_group_manager_file_to_json,
+)
 from utils.logger import logger
 from utils.utils import attempt_ingest_from_name
+from sourcer import source_metric
 
 
 def remember(arguments: list[str]):
@@ -36,5 +41,9 @@ def forget(arguments: list[str]):
 
 
 group_manager = GroupManager()
+group_manager_json = read_group_manager_file_to_json()
+group_manager = load_group_manager_from_json(
+    gm_json=group_manager_json, metric_sourcer=source_metric
+)
 
 global_function_register: dict[str, callable] = {"remember": remember, "forget": forget}

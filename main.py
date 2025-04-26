@@ -1,5 +1,5 @@
 import sys
-from file_tools.metric_file_tools import create_metric_dir
+from file_tools.utils import create_metric_dir
 from high_level_functions.entry_points import (
     analyse,
     graph,
@@ -47,4 +47,5 @@ if __name__ == "__main__":
         print()
         logger.add("WARNING", "HLL terminated due to interrupt signal.", cli_out=True)
         logger.dump_to_file()
+        exit()
         sys.exit()

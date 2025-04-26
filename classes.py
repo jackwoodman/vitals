@@ -3,7 +3,6 @@ from enum import Enum
 from typing import Optional, Union
 from utils.logger import logger
 from utils.plotting import plot_metrics
-from utils.utils import attempt_ingest_from_name
 
 
 class InequalityValue:
@@ -114,9 +113,6 @@ class HealthMetric:
         """Must be implemented."""
         pass
 
-    def refresh_metric(self):
-        return attempt_ingest_from_name(metric_input=self.metric_name)
-
 
 class RangedMetric(HealthMetric):
     def __init__(self, metric_name: str, range_minimum: float, range_maximum: float):
@@ -169,7 +165,13 @@ class BooleanMetric(HealthMetric):
 
 
 class MetricGroup:
-    def __init__(self, unit: str = None, initial_metrics: list[HealthMetric] = None):
+    def __init__(
+        self,
+        unit: str = None,
+        initial_metrics: list[HealthMetric] = None,
+        group_name: str = None,
+    ):
+        self.group_name: str = group_name
         self.metric_dict = {}
         self.count = 0
         self.enforce_units = unit is not None
@@ -223,6 +225,8 @@ class MetricGroup:
 
 class GroupManager:
     def __init__(self):
+        self.init_time = datetime.now()
+        self.id = abs(hash(self.init_time))
         self.group_record: dict[str, MetricGroup] = {}
         self.group_sizes: dict[str, int] = {}
         self.record_count = 0

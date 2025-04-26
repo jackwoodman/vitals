@@ -1,26 +1,347 @@
+import json
+from pathlib import Path
 from typing import Optional
 
 from classes import (
     BooleanMetric,
     GreaterThanMetric,
+    GroupManager,
     HealthMetric,
     InequalityMeasurement,
     InequalityValue,
     LessThanMetric,
     Measurement,
+    MetricGroup,
     MetricType,
     RangedMetric,
 )
-from file_tools.metric_file_tools import (
+
+from file_tools.utils import is_inequality_value_str
+from utils.logger import logger
+from utils.cli_displays import cli_warn
+from file_tools.filepaths import (
     FILE_DIR_NAME,
     FILE_DIR_PATH,
     FILE_VERS,
     get_filenames_without_extension,
-    is_inequality_value_str,
-    read_metric_file_to_json,
 )
-from utils.logger import logger
-from utils.cli_displays import cli_warn
+
+
+def read_metric_file_to_json(metric_name: str) -> dict:
+    """
+    Given the name of a health metric file, load said file and return
+    JSON dict.
+
+    Arguments:
+        metric_name: Name of metric file, without the .json.
+
+    Returns:
+        JSON dict of metric_name.
+    """
+    filename = (
+        f"{FILE_DIR_NAME}/{metric_name}.json"
+        if ".json" not in metric_name
+        else metric_name
+    )
+
+    try:
+        # Write updated data back to the file
+        with open(filename, "r") as health_file:
+            data = json.load(health_file)
+        return data
+
+    except FileNotFoundError:
+        warning_text = f"File '{filename} could not be found."
+        logger.add("WARNING", warning_text)
+        cli_warn(warning_text)
+        return None
+
+
+def write_json_to_metric_file(metric_name: str, json_dict: dict) -> bool:
+    """
+    Given the name of a health metric file, and a JSON dict, write
+    JSON dict to file.
+
+    Arguments:
+        metric_name: Name of metric file, without the .json.
+        json: The JSON dict.
+
+    Returns:
+        Bool indicating write success.
+    """
+    filepath = Path(
+        f"{FILE_DIR_NAME}/{metric_name}.json"
+        if ".json" not in metric_name
+        else metric_name
+    )
+
+    try:
+        filepath.write_text(json.dumps(json_dict, indent=4))
+    except IOError as e:
+        logger.add("ERROR", f"Failed to write metric file: {e}")
+        return False
+
+    return True
+
+
+def generate_metric_file(health_metric: HealthMetric) -> str:
+    """
+    Provided a health metric object, generate a metric file to store the currently
+    contained data. File is named using the metric_name attribute and saved to the
+    required directory.
+
+    Arguments:
+        health_metric: The metric to be saved to file.
+
+    Returns:
+        A string path to the generated file.
+    """
+    file_path = Path(FILE_DIR_NAME) / f"{health_metric.metric_name}.json"
+
+    preformed_dictionary = {
+        "metric_name": health_metric.metric_name,
+        "file_version": FILE_VERS,
+        "metric_type": health_metric.metric_type.value,
+        "metric_guide": health_metric.metric_guide(),
+        "data": [],
+    }
+
+    if health_metric.unit:
+        preformed_dictionary["unit"] = health_metric.unit
+
+    try:
+        file_path.write_text(json.dumps(preformed_dictionary, indent=4))
+    except IOError as e:
+        logger.add("ERROR", f"Failed to write metric file: {e}")
+        raise
+
+    logger.add("action", f"Created new metric file `{health_metric.metric_name}.json`.")
+    return str(file_path)
+
+
+def add_measurement_to_metric_file(metric_name: str, measurement: Measurement) -> bool:
+    """Adds a new entry (date and value) to an existing health JSON file, accepts a datetime object for the date.
+
+    Arguments:
+        metric_name: Name of the metric to be added to.
+        measurement: Measurement to be added.
+
+    Returns:
+        Bool indicating write success.
+    """
+    # Load existing data
+    file_path = Path(FILE_DIR_NAME) / f"{metric_name}.json"
+
+    if not file_path.exists():
+        print(f"Error: File {file_path} not found. Please create the file first.")
+        return False
+
+    try:
+        data = json.loads(file_path.read_text())
+    except json.JSONDecodeError as e:
+        logger.add("ERROR", f"Failed to parse JSON from {file_path}: {e}")
+        return False
+
+    # Convert datetime to string in ISO format
+    date_str = measurement.date.isoformat()
+
+    # Add new entry
+    new_entry = {
+        "date": date_str,
+        "value": measurement.value
+        if not isinstance(measurement, InequalityMeasurement)
+        else str(measurement),
+    }
+    # Check measurement has own unit.
+    if measurement.unit:
+        new_entry["unit"] = measurement.unit
+    elif unit_from_file := data.get("unit"):
+        # If no unit, try to use value default.
+        new_entry["unit"] = unit_from_file
+
+    data["data"].append(new_entry)
+
+    try:
+        file_path.write_text(json.dumps(data, indent=4))
+    except IOError as e:
+        logger.add("ERROR", f"Failed to write to metric file {file_path}: {e}")
+        return False
+
+    logger.add("action", f"Added new measurement to '{file_path.name}'.")
+    return True
+
+
+def update_measurement_units(
+    metric_name: str, new_unit: str, update_file_level_unit: bool = False
+) -> int:
+    """
+    Update all measurements in a given metric file with a new unit value.
+
+    Arguments:
+        metric_name: Name of the metric file to be modified.
+        new_unit: New unit string to be applied.
+        update_file_level_unit: If true, also update the metric file level unit.
+
+    Returns:
+        Number of measurements that were modified.
+    """
+    modified_units = 0
+    file_json = read_metric_file_to_json(metric_name)
+
+    if file_json:
+        for measurement in file_json.get("data"):
+            measurement["unit"] = new_unit
+            modified_units += 1
+
+        # Update file level value if needed.
+        if update_file_level_unit:
+            file_json["unit"] = new_unit
+            logger.add(
+                "action", f"'{metric_name}' unit changed to '{new_unit}'.", cli_out=True
+            )
+
+        # Save the modified JSON back to the file
+        write_json_to_metric_file(metric_name=metric_name, json_dict=file_json)
+        logger.add(
+            "action",
+            f"Updated {modified_units} measurements from {metric_name} with unit '{new_unit}'.",
+            cli_out=True,
+        )
+
+    else:
+        logger.add("WARNING", "Can't mass update file.")
+
+    return modified_units
+
+
+def rename_health_file(current_metric_name: str, new_metric_name: str):
+    # Specify the old and new file names
+    old_file = Path(FILE_DIR_NAME) / f"{current_metric_name}.json"
+    new_file = Path(FILE_DIR_NAME) / f"{new_metric_name}.json"
+
+    # Rename the file
+    try:
+        old_file.rename(new_file)
+        print(f" - File renamed successfully to {new_file}")
+    except FileNotFoundError:
+        print(f"The file {old_file} does not exist.")
+    except PermissionError:
+        print("Permission denied. Make sure you have the right access.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+    # Read the JSON data from the renamed file.
+    try:
+        with open(str(new_file), "r") as file:
+            data = json.load(file)
+        key_to_modify = "metric_name"
+
+        # Update metric_name.
+        if key_to_modify in data:
+            old_value = data[key_to_modify]
+            data[key_to_modify] = new_metric_name
+            print(
+                f" - Changed value of '{key_to_modify}' from '{old_value}' to '{new_metric_name}'"
+            )
+        else:
+            print(f" - The key '{key_to_modify}' does not exist in the JSON file.")
+
+        # Save the modified JSON back to the file
+        with open(str(new_file), "w") as file:
+            json.dump(data, file, indent=4)
+
+    except FileNotFoundError:
+        print(f"The file {str(new_file)} does not exist.")
+    except json.JSONDecodeError:
+        print("Error decoding JSON. Please ensure the file contains valid JSON.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+MEM_FILE_NAME = "memory"
+MEM_FILE_PATH = Path(MEM_FILE_NAME)
+
+
+def read_group_manager_file_to_json() -> dict:
+    """
+    Returns JSON object representing the alias file
+
+    Returns:
+        JSON dict of alias file..
+    """
+    filename = f"{MEM_FILE_NAME}/aliases.json"
+
+    try:
+        # Write updated data back to the file
+        with open(filename, "r") as alias_file:
+            data = json.load(alias_file)
+        return data
+
+    except FileNotFoundError:
+        warning_text = f"File '{filename} could not be found."
+        logger.add("WARNING", warning_text)
+        return None
+
+
+def generate_group_manager_file(group_manager: GroupManager) -> str:
+    """
+    Provided a health metric object, generate a metric file to store the currently
+    contained data. File is named using the metric_name attribute and saved to the
+    required directory.
+
+    Arguments:
+        health_metric: The metric to be saved to file.
+
+    Returns:
+        A string path to the generated file.
+    """
+    file_path = MEM_FILE_PATH / f"gm_{group_manager.id}.json"
+
+    group_record = {
+        group_name: {
+            "enforce_units": group.enforce_units,
+            "unit": group.unit,
+            "count": group.count,
+            "metric_dict": [metric_name for metric_name in group.metric_dict.values()],
+        }
+        for group_name, group in group_manager.group_record.items()
+    }
+
+    preformed_dictionary = {
+        "record_count": str(group_manager.record_count),
+        "group_record": group_record,
+    }
+
+    try:
+        file_path.write_text(json.dumps(preformed_dictionary, indent=4))
+    except IOError as e:
+        logger.add("ERROR", f"Failed to write GM file: {e}")
+        raise
+
+    logger.add("action", f"Created new metric file `gm_{group_manager.id}.json`.")
+    return str(file_path)
+
+
+def load_group_manager_from_json(
+    gm_json: dict, metric_sourcer: callable
+) -> GroupManager:
+    new_manager = GroupManager()
+
+    if gm_json:
+        for group_name, group in gm_json.get("group_record"):
+            # Generate MetricGroup from input.
+            new_group = MetricGroup(unit=group.get("unit", None), group_name=group_name)
+            new_group.add_metrics(
+                [
+                    metric_sourcer(metric_input=input_metric_name)
+                    for input_metric_name in group.get("metric_dict")
+                ]
+            )
+
+            # Register this group with the GroupManager.
+            new_manager.register_group(group_name, new_group)
+
+    return new_manager
 
 
 def get_all_metric_files() -> list[HealthMetric]:

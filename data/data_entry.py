@@ -7,16 +7,18 @@ from classes import (
     Measurement,
 )
 from datetime import datetime
-from file_tools.metric_file_parsing import parse_health_metric
-from utils.sequence_matcher import get_closest_matches
-from file_tools.metric_file_tools import (
+from file_tools.metric_file_parsing import (
+    parse_health_metric,
     add_measurement_to_metric_file,
     generate_metric_file,
-    get_filenames_without_extension,
+)
+from utils.sequence_matcher import get_closest_matches
+from file_tools.utils import (
     is_inequality_value_str,
 )
 from utils.utils import is_verbatim
 from utils.logger import logger
+from file_tools.filepaths import get_filenames_without_extension
 
 Entry_T = Optional[str]
 data_entry_strptime_format = "%d%m%Y"
