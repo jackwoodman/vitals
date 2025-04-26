@@ -1,4 +1,5 @@
-from utils.utils import attempt_ingest_from_name
+from classes import HealthMetric
+from global_functions import source_metric
 
 
 def read_by_name(arguments: list):
@@ -9,18 +10,22 @@ def read_by_name(arguments: list):
         Position 1: Name of file to read.
 
     """
-    health_metric = attempt_ingest_from_name(arguments, "read_metric")
+    source_group = source_metric(arguments[0])
 
     # Check nonzero entries:
-    if health_metric and len(health_metric.entries) > 0:
-        print(f"(Found {len(health_metric.entries)} entries)")
-        for measurement in health_metric.entries:
-            print(
-                " - ",
-                f"{str(measurement)}{(" "+measurement.unit) if measurement.unit else ""}",
-                " -> ",
-                measurement.date,
-            )
+    if source_group and len(source_group.as_list()) > 0:
+        metrics: list[HealthMetric] = source_group.as_list()
+        for metrid in metrics:
+            print(f"\nMetric: {metrid.metric_name}")
+            entries = metrid.entries
+            print(f"(Found {len(entries)} entries)")
+            for measurement in entries:
+                print(
+                    " - ",
+                    f"{str(measurement)}{(" "+measurement.unit) if measurement.unit else ""}",
+                    " -> ",
+                    measurement.date,
+                )
 
     else:
         print("File is empty.")

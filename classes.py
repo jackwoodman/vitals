@@ -189,8 +189,14 @@ class MetricGroup:
         figure.show()
 
     def add_metric(self, new_metric: HealthMetric) -> bool:
+        # Check bcos Jack is bad at typing.
+        if not isinstance(new_metric, HealthMetric):
+            raise TypeError(
+                f"Argument is not of type HealthMetric. Type is '{type(new_metric)}'."
+            )
+
         # Check metric can be registered.
-        if new_metric.unit and new_metric.unit != self.unit and self.enforce_units:
+        elif new_metric.unit and new_metric.unit != self.unit and self.enforce_units:
             logger.add(
                 "warning",
                 f"Metric '{new_metric.metric_name}' unit '{new_metric.unit}' does not match MetricGroup unit '{self.unit}'.",
@@ -206,7 +212,23 @@ class MetricGroup:
         """
         Add a list of metrics.
         """
-        return [self.add_metric(metric) for metric in new_metrics]
+        # Check correct typing.
+        if not isinstance(new_metrics, list):
+            # Not a list at all.
+            raise TypeError(
+                f"Arg type is not a list[HealthMetric]. Type is '{type(new_metrics)}'."
+            )
+        elif len(new_metrics) > 0 and not isinstance(new_metrics[0], HealthMetric):
+            # Is list, but not of HealthMetrics.
+            raise TypeError(
+                f"Arg is a list of '{type(new_metrics[0])}'. Should be list[HealthMetric]"
+            )
+
+        return (
+            [self.add_metric(metric) for metric in new_metrics]
+            if isinstance(new_metrics, list)
+            else [self.add_metric(new_metrics)]
+        )
 
     def remove_metric(self, metric_name: str) -> bool:
         """
@@ -231,16 +253,28 @@ class GroupManager:
         self.group_sizes: dict[str, int] = {}
         self.record_count = 0
 
+    def get_metrics_in_list(self) -> list[HealthMetric]:
+        return [metric for metric in self.group_record.values()]
+
     def register_group(self, group_name: str, group: MetricGroup):
         self.group_record[group_name] = group
         self.group_sizes[group_name] = group.count
-        self.record_count
+        self.record_count += 1
 
     def get_groups(self) -> list[MetricGroup]:
         return self.group_record
 
     def get_group(self, group_name: str) -> MetricGroup:
         return self.group_record.get(group_name)
+
+    def check_if_registered(self, name: str, log_if_found: bool = False) -> bool:
+        if name in self.group_record.keys():
+            if log_if_found:
+                logger.add(
+                    "info", f"'{name}' is present in the GroupRegister.", cli_out=True
+                )
+            return True
+        return False
 
     def remove_group(self, group_name: str):
         self.group_record.pop(group_name)

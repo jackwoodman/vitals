@@ -12,6 +12,33 @@ from utils.sequence_matcher import get_closest_match
 function_mapping_t = dict[str, callable]
 
 
+def flatten_list(input_list: Union[list, any]) -> list:
+    """
+    Accepts input of a list, of lists. These may contain more lists, and so on. This function
+    recursively flattens all n levels of lists into a single array.
+
+    This function is not particularly performant, and limited by the Python
+    recursion limit.
+
+    Args:
+        input_list: A list of lists of ... of lists.
+
+    Returns:
+        The flattened array.
+    """
+
+    # Case where this is the final level.
+    if not isinstance(input_list, list):
+        return [input_list]
+
+    # Case where currently a list.
+    to_return = []
+    for element in input_list:
+        to_return.extend(flatten_list(input_list=element))
+
+    return to_return
+
+
 def generic_hll_function(
     sub_func_map: function_mapping_t, hll_name: str, proper_name: str = None
 ):

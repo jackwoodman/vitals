@@ -47,5 +47,5 @@ if __name__ == "__main__":
         print()
         logger.add("WARNING", "HLL terminated due to interrupt signal.", cli_out=True)
         logger.dump_to_file()
-        exit()
+        exit(None)
         sys.exit()
