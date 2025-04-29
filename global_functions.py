@@ -65,7 +65,7 @@ def source_metric(metric_input: list[str]) -> MetricGroup:
     main_group: MetricGroup = found_groups[0]
     found_groups.pop(0)
     for found_group in found_groups:
-        main_group.combine_groups(found_group)
+        main_group = main_group.combine_groups(found_group)
 
     return main_group
 

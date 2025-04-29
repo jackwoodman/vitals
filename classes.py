@@ -184,17 +184,28 @@ class MetricGroup:
             self.add_metrics(new_metrics=initial_metrics)
 
     def combine_groups(
-        self, other_group: MetricGroup, group_name: Optional[str] = None
+        self,
+        other_group: MetricGroup,
+        group_name: Optional[str] = None,
+        inherit_unit: bool = False,
     ) -> MetricGroup:
         """
         Combine this self MetricGroup with another MetricGroup, such as their
         `metric_dicts` are unioned with each other.
 
-        This function creates a *new MetricGroup* object.
+        This function creates a *new MetricGroup* object. This is called the
+        "resultant group"
+
+        Args:
+            other_group: The group to combine with `self`.
+            group_name: The name for the resultant group, if not specified will
+                inherit from the `self` MetricGroup.
+            inherit_unit: If true, inherits the unit of the `self` MetricGroup. Otherwise
+                is set to none.
         """
         # Initialise group as a near copy of self group.
         new_group = MetricGroup(
-            unit=self.unit,
+            unit=None,
             initial_metrics=self.as_list(),
             group_name=group_name or self.group_name,
         )
@@ -235,6 +246,7 @@ class MetricGroup:
         """
         Add a list of metrics.
         """
+
         # Check correct typing.
         if not isinstance(new_metrics, list):
             # Not a list at all.
@@ -247,11 +259,7 @@ class MetricGroup:
                 f"Arg is a list of '{type(new_metrics[0])}'. Should be list[HealthMetric]"
             )
 
-        return (
-            [self.add_metric(metric) for metric in new_metrics]
-            if isinstance(new_metrics, list)
-            else [self.add_metric(new_metrics)]
-        )
+        return [self.add_metric(metric) for metric in new_metrics]
 
     def remove_metric(self, metric_name: str) -> bool:
         """
