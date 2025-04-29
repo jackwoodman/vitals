@@ -10,7 +10,7 @@ def read_by_name(arguments: list):
         Position 1: Name of file to read.
 
     """
-    source_group = source_metric(arguments[0])
+    source_group = source_metric(arguments)
 
     # Check nonzero entries:
     if source_group and len(source_group.as_list()) > 0:

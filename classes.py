@@ -1,5 +1,7 @@
+from __future__ import annotations
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from typing import Optional, Union
 from utils.logger import logger
 from utils.plotting import plot_metrics
@@ -181,6 +183,27 @@ class MetricGroup:
         if initial_metrics:
             self.add_metrics(new_metrics=initial_metrics)
 
+    def combine_groups(
+        self, other_group: MetricGroup, group_name: Optional[str] = None
+    ) -> MetricGroup:
+        """
+        Combine this self MetricGroup with another MetricGroup, such as their
+        `metric_dicts` are unioned with each other.
+
+        This function creates a *new MetricGroup* object.
+        """
+        # Initialise group as a near copy of self group.
+        new_group = MetricGroup(
+            unit=self.unit,
+            initial_metrics=self.as_list(),
+            group_name=group_name or self.group_name,
+        )
+
+        # Add entries from other group.
+        new_group.add_metrics(new_metrics=other_group.as_list())
+
+        return new_group
+
     def as_list(self):
         return [metric for metric in self.metric_dict.values()]
 
@@ -246,7 +269,8 @@ class MetricGroup:
 
 
 class GroupManager:
-    def __init__(self):
+    def __init__(self, source_file: Optional[Path] = None):
+        self.source_file: Path = source_file
         self.init_time = datetime.now()
         self.id = abs(hash(self.init_time))
         self.group_record: dict[str, MetricGroup] = {}
@@ -260,6 +284,9 @@ class GroupManager:
         self.group_record[group_name] = group
         self.group_sizes[group_name] = group.count
         self.record_count += 1
+
+    def get_source_file(self) -> Path:
+        return self.source_file
 
     def get_groups(self) -> list[MetricGroup]:
         return self.group_record

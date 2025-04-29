@@ -1,14 +1,14 @@
+from global_functions import source_metric
 from utils.plotting import plot_metrics
-from utils.utils import attempt_ingest_from_name
 
 
 def from_names(arguments: list):
     # Read requested file.
-    health_metrics = attempt_ingest_from_name(arguments, "graph")
+    health_metrics = source_metric(arguments).as_list()
 
     if health_metrics:
-        if not isinstance(health_metrics, list):
-            current_plot = health_metrics.graph_metric()
+        if len(health_metrics) == 1:
+            current_plot = health_metrics[0].graph_metric()
         else:
             current_plot = plot_metrics(health_metrics, show_bounds=True)
 
