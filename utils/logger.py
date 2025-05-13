@@ -84,6 +84,9 @@ class LogCollector:
             print(new_log.to_string())
 
     def count(self) -> int:
+        """
+        Return the number of Logs present in the collector.
+        """
         return len(self.collection)
 
     def dump_to_file(self) -> str:

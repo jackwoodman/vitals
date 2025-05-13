@@ -3,6 +3,9 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Optional, Union
+
+import plotly
+import plotly.graph_objects
 from utils.logger import logger
 from utils.plotting import plot_metrics
 
@@ -216,11 +219,34 @@ class MetricGroup:
         return new_group
 
     def as_list(self):
+        """
+        Returns:
+            List of metrics registered with this MetricGroup.
+        """
         return [metric for metric in self.metric_dict.values()]
 
-    def graph_group(self, show_bounds: bool = True):
+    def graph_group(
+        self, show_bounds: bool = True, show_graph: bool = False
+    ) -> plotly.graph_objects.Figure:
+        """
+        Generate a stacked graph of the metrics within this group.
+
+        Args:
+            show_bounds: A bool indicating whether the max/min bounds of
+                each metric should be shown.
+
+            show_graph: A bool indicating whether the graph should be shown,
+                or just returned.
+
+        Returns:
+            A graph of the metrics contained within this group.
+        """
         figure = plot_metrics(self.as_list(), show_bounds=show_bounds)
-        figure.show()
+
+        if show_graph:
+            figure.show()
+
+        return figure
 
     def add_metric(self, new_metric: HealthMetric) -> bool:
         # Check bcos Jack is bad at typing.
@@ -244,7 +270,15 @@ class MetricGroup:
 
     def add_metrics(self, new_metrics: list[HealthMetric]) -> list[bool]:
         """
-        Add a list of metrics.
+        Register all of the metrics within the input list with
+        this MetricGroup. Will return a list indicating, for each of the
+        metrics in the input list, if the registration was successful or not.
+
+        Arguments:
+            new_metrics: A list of metrics to be registered.
+
+        Returns:
+            A list of bools indicating the registration success.
         """
 
         # Check correct typing.
@@ -263,16 +297,35 @@ class MetricGroup:
 
     def remove_metric(self, metric_name: str) -> bool:
         """
-        Deregister metric.
+        Deregister metric from this MetricGroup, based on name.
+
+        Args:
+            metric_name: The name to be deregistered.
+
+        Returns:
+            A bool indicating whether the Metric was found and therefore
+            deregistered.
         """
+        # Metric name is present, deregister correctly.
         if metric_name in self.metric_dict.keys():
             self.metric_dict.pop(metric_name)
             self.count -= 1
             return True
+
+        # Metric name was not found.
         logger.add("warning", f"No metric named '{metric_name}'.", cli_out=True)
         return False
 
     def remove_metrics(self, metric_names: list[str]) -> list[bool]:
+        """
+        List-based version of remove_metric.
+
+        Args:
+            metric_names: List of metric names to attempt to deregister.
+
+        Returns:
+            List indicating the success of each deregistration.
+        """
         return [self.remove_metric(metric_name) for metric_name in metric_names]
 
 

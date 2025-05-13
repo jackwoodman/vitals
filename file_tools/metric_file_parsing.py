@@ -5,20 +5,17 @@ from typing import Optional
 from classes import (
     BooleanMetric,
     GreaterThanMetric,
-    GroupManager,
     HealthMetric,
     InequalityMeasurement,
     InequalityValue,
     LessThanMetric,
     Measurement,
-    MetricGroup,
     MetricType,
     RangedMetric,
 )
 
 from file_tools.utils import is_inequality_value_str
 from utils.logger import logger
-from utils.cli_displays import cli_warn
 from file_tools.filepaths import (
     FILE_DIR_NAME,
     FILE_DIR_PATH,
@@ -52,8 +49,7 @@ def read_metric_file_to_json(metric_name: str) -> dict:
 
     except FileNotFoundError:
         warning_text = f"File '{filename} could not be found."
-        logger.add("WARNING", warning_text)
-        cli_warn(warning_text)
+        logger.add("WARNING", warning_text, cli_out=True)
         return None
 
 
@@ -286,8 +282,9 @@ def load_metric_from_json(health_data: dict) -> Optional[HealthMetric]:
         metric_name = health_data["metric_name"]
         file_version = health_data["file_version"]
     except KeyError as e:
-        cli_warn(f"Missing required assumed key: {e}")
-        logger.add("WARNING", f"Missing required assumed key in health data: {e}")
+        logger.add(
+            "WARNING", f"Missing required assumed key in health data: {e}", cli_out=True
+        )
         return None
 
     file_is_outdated = False
@@ -295,8 +292,7 @@ def load_metric_from_json(health_data: dict) -> Optional[HealthMetric]:
     if file_version < FILE_VERS:
         version_delta = FILE_VERS - file_version
         fv_warn = f"file `{metric_name}` is outdated by {version_delta}. (File vers: {file_version}, operating vers: {FILE_VERS})"
-        cli_warn(fv_warn)
-        logger.add("WARNING", fv_warn)
+        logger.add("WARNING", fv_warn, cli_out=True)
         file_is_outdated = True
 
     try:
@@ -328,8 +324,7 @@ def load_metric_from_json(health_data: dict) -> Optional[HealthMetric]:
         else:
             # Metric type doesn't match supported types.
             fv_warn = f"Metric file type `{metric_type}` is not recognised.\n"
-            cli_warn(fv_warn)
-            logger.add("WARNING", fv_warn)
+            logger.add("WARNING", fv_warn, cli_out=True)
             return None
 
         # Process individual data entries.
@@ -366,15 +361,16 @@ def load_metric_from_json(health_data: dict) -> Optional[HealthMetric]:
     except Exception as e:
         # If file was outdated, this is likely the cause, though this should be refined.
         if file_is_outdated:
-            cli_warn(
-                "Unable to parse, likely because file is outdated. Update file and try again."
-            )
             logger.add(
-                "WARNING", f"Couldn't parse, outdated file may be the cause. {e}"
+                "WARNING",
+                f"Couldn't parse, outdated file may be the cause. {e}",
+                cli_out=True,
             )
         else:
-            cli_warn("Unable to parse. File was up to date.")
-            logger.add("WARNING" "Couldn't parse, reason is unknown. {e}")
+            logger.add(
+                "WARNING" "Couldn't parse, file is up to date. Reason is unknown. {e}",
+                cli_out=True,
+            )
         return None
     return metric
 

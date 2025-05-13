@@ -5,7 +5,7 @@ from utils.logger import logger
 from global_functions import group_manager
 
 
-def generate_group_manager_file(group_manager: GroupManager) -> str:
+def generate_group_manager_file(group_manager: GroupManager, gm_file_name: str) -> str:
     """
     Provided a health metric object, generate a metric file to store the currently
     contained data. File is named using the metric_name attribute and saved to the
@@ -17,7 +17,8 @@ def generate_group_manager_file(group_manager: GroupManager) -> str:
     Returns:
         A string path to the generated file.
     """
-    file_path = MEM_FILE_PATH / "aliases.json"
+    file_path = MEM_FILE_PATH / gm_file_name
+    total_group_size = group_manager.record_count
 
     group_record = {
         group_name: {
@@ -32,7 +33,7 @@ def generate_group_manager_file(group_manager: GroupManager) -> str:
     }
 
     preformed_dictionary = {
-        "record_count": str(group_manager.record_count),
+        "record_count": str(total_group_size),
         "group_record": group_record,
     }
 
@@ -42,12 +43,21 @@ def generate_group_manager_file(group_manager: GroupManager) -> str:
         logger.add("ERROR", f"Failed to write GM file: {e}")
         raise
 
-    logger.add("action", f"Created new metric file `gm_{group_manager.id}.json`.")
+    plural = "" if total_group_size == 1 else "es"
+    logger.add(
+        "action",
+        f"Updated '{gm_file_name}', containing {total_group_size} alias{plural}.",
+    )
     return str(file_path)
 
 
-def exit(_: list):
-    """End high level loop."""
-    generate_group_manager_file(group_manager=group_manager)
+def exit(_: list) -> None:
+    """
+    End high level loop. Generates an updated group manager file from the current in-memory
+    group manager, and logs the end of program.
+    """
+    generate_group_manager_file(
+        group_manager=group_manager, gm_file_name="aliases.json"
+    )
     logger.add("action", "Exiting high level loop now.")
     logger.dump_to_file()

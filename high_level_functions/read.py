@@ -15,6 +15,8 @@ def read_by_name(arguments: list):
     # Check nonzero entries:
     if source_group and len(source_group.as_list()) > 0:
         metrics: list[HealthMetric] = source_group.as_list()
+
+        # For each metric, display associated entries.
         for metrid in metrics:
             print(f"\nMetric: {metrid.metric_name}")
             entries = metrid.entries
@@ -28,6 +30,6 @@ def read_by_name(arguments: list):
                 )
 
     else:
-        print("File is empty.")
+        print(f"read_by_name() was unable to load from arguemnts: {arguments}")
 
     print("\n")
